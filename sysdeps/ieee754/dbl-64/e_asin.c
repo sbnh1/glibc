@@ -443,7 +443,7 @@ double as_acos_refine(double x, double phi){
     {-0x1.87df6378811c7p-55, 0x1.fd88da3d12526p-1}, {-0x1.c57bc2e24aa15p-57, 0x1.ff621e3796d7ep-1},
     {0x0p+0, 0x1p+0}
   };    
-
+  // 0 <= jf <= 32
   double Ch = s[32-jf][1], Cl = s[32-jf][0], Sh = s[jf][1], Sl = s[jf][0];
 
   double ax = __builtin_fabs(x);
@@ -460,6 +460,7 @@ double as_acos_refine(double x, double phi){
   double dv =  (Ch*dsl + Cl*dsh) - (Sh*dcl + Sl*dch) - (dSc - dCs);
   v = fasttwosum(v,dv,&dv);
   double sgn = __builtin_copysign(1.0, x), jt = 32 - jf*sgn;
+  // 0 <= jt <= 64
   static const double c[][2] = {
     {0x1p+0, -0x1.fc2c76456515bp-108}, {0x1.5555555555555p-3, 0x1.5555555623513p-57},
     {0x1.3333333333333p-4, 0x1.9997e3427441bp-59}, {0x1.6db6db6db6db7p-5, -0x1.cb95ff08658e6p-62},
@@ -472,6 +473,7 @@ double as_acos_refine(double x, double phi){
   fh = muldd(v,dv, fh,fl, &fl);
 
   double ph = jt * 0x1.921fb54442dp-5, pl = 0x1.8469898cc518p-53*jt, ps = -0x1.fc8f8cbb5bf6cp-102*jt;
+  // since 0 <= jt <= 64, ph and pl are exact
   pl = sum(fh,fl, pl,ps, &ps);
   ph = fasttwosum(ph,pl, &pl);
   pl = fasttwosum(pl,ps, &ps);
@@ -483,13 +485,14 @@ double as_acos_refine(double x, double phi){
   e = e<0?0:e;
   e = e>52?52:e;
   u64 m = ((u64)1<<52)-((u64)1<<e);
-  if(__builtin_expect(!((t.u+((i64)1<<(e-1)))&m), 0)){
+  e = (e == 0) ? 64 : e;
+  if(__builtin_expect(!((t.u+((u64)1<<(e-1)))&m), 0)){
     if(x==-0x1.771164bfd1f84p-3 ) return 0x1.c14601daaf657p+0  - 0x1p-54;
     if(x==-0x1.4510ee8eb4e67p-1 ) return 0x1.211c0e2c2559ep+1  - 0x1p-53;
     if(x==-0x1.011c543f23a17p-2 ) return 0x1.d318c90d9e8b7p+0  - 0x1p-54;
     if(x== 0x1.ffffffffffdc0p-1 ) return 0x1.8000000000024p-22 + 0x1p-76;
     if(x== 0x1.53ea6c7255e88p-4 ) return 0x1.7cdacb6bbe707p+0  + 0x1p-54;
-    if(x== 0x1.fd737be914578p-11) return 0x1.91e006d41d8d8p+0  + 0x1p-54;
+    if(x== 0x1.fd737be914578p-11) return 0x1.91e006d41d8d8p+0  + 0x1.8p-53;
     if(x== 0x1.fffffffffff70p-1 ) return 0x1.8000000000009p-23 + 0x1p-77;
     b64u64_u w = {.f = ps};
     if((w.u^t.u)>>63)
