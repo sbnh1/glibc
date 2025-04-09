@@ -35,7 +35,6 @@
 #include <dl-machine.h>
 #include <libc-lock.h>
 #include <dl-cache.h>
-#include <dl-procinfo.h>
 #include <unsecvars.h>
 #include <hp-timing.h>
 #include <stackinfo.h>
@@ -332,9 +331,7 @@ _dl_non_dynamic_init (void)
 	break;
       }
 
-  if ((__glibc_unlikely (GL(dl_stack_flags)) & PF_X)
-      && TUNABLE_GET (glibc, rtld, execstack, int32_t, NULL) == 0)
-    _dl_fatal_printf ("Fatal glibc error: executable stack is not allowed\n");
+  _dl_handle_execstack_tunable ();
 
   call_function_static_weak (_dl_find_object_init);
 

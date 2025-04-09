@@ -63,7 +63,6 @@ routines = \
   old_pthread_cond_signal \
   old_pthread_cond_timedwait \
   old_pthread_cond_wait \
-  pthread_atfork \
   pthread_attr_copy \
   pthread_attr_destroy \
   pthread_attr_extension \
@@ -124,6 +123,7 @@ routines = \
   pthread_getname \
   pthread_getschedparam \
   pthread_getspecific \
+  pthread_gettid_np \
   pthread_join \
   pthread_join_common \
   pthread_key_create \
@@ -210,7 +210,6 @@ routines = \
   vars \
   # routines
 
-static-only-routines = pthread_atfork
 libpthread-routines = libpthread-compat
 libpthread-shared-only-routines = libpthread-compat
 
@@ -289,6 +288,7 @@ tests = \
   tst-dlsym1 \
   tst-exec4 \
   tst-exec5 \
+  tst-guard1 \
   tst-initializers1 \
   tst-initializers1-c11 \
   tst-initializers1-c89 \
@@ -325,6 +325,7 @@ tests = \
   tst-pthread-timedlock-lockloop \
   tst-pthread_exit-nothreads \
   tst-pthread_exit-nothreads-static \
+  tst-pthread_gettid_np \
   tst-robust-fork \
   tst-robustpi1 \
   tst-robustpi2 \
@@ -701,6 +702,9 @@ $(objpfx)tst-execstack-threads.out: $(objpfx)tst-execstack-threads-mod.so
 LDFLAGS-tst-execstack-threads = -Wl,-z,noexecstack
 LDFLAGS-tst-execstack-threads-mod.so = -Wl,-z,execstack
 CFLAGS-tst-execstack-threads-mod.c += -Wno-trampolines
+ifeq ($(have-no-error-execstack),yes)
+LDFLAGS-tst-execstack-threads-mod.so += -Wl,--no-error-execstack
+endif
 
 tst-stackguard1-ARGS = --command "$(host-test-program-cmd) --child"
 tst-stackguard1-static-ARGS = --command "$(objpfx)tst-stackguard1-static --child"

@@ -96,7 +96,7 @@ TUNABLE_CALLBACK (set_hwcaps) (tunable_val_t *valp)
      GLIBC_TUNABLES=glibc.cpu.hwcaps=-xxx,yyy,-zzz,....
 
      can be used to enable CPU/ARCH feature yyy, disable CPU/ARCH feature
-     yyy and zzz, where the feature name is case-sensitive and has to
+     xxx and zzz, where the feature name is case-sensitive and has to
      match the ones in cpu-features.h.  It can be used by glibc developers
      to tune for a new processor or override the IFUNC selection to
      improve performance for a particular workload.
@@ -163,6 +163,8 @@ TUNABLE_CALLBACK (set_hwcaps) (tunable_val_t *valp)
 		{
 		  /* Update xsave_state_size to XSAVE state size.  */
 		  cpu_features->xsave_state_size
+		    = cpu_features->xsave_state_full_size;
+		  _dl_x86_features_tlsdesc_state_size
 		    = cpu_features->xsave_state_full_size;
 		  CPU_FEATURE_UNSET (cpu_features, XSAVEC);
 		}

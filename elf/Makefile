@@ -34,7 +34,6 @@ routines = \
   dl-addr \
   dl-addr-obj \
   dl-early_allocate \
-  dl-find_object \
   dl-iteratephdr \
   dl-libc \
   dl-origin \
@@ -61,6 +60,8 @@ dl-routines = \
   dl-deps \
   dl-exception \
   dl-execstack \
+  dl-execstack-tunable \
+  dl-find_object \
   dl-fini \
   dl-init \
   dl-load \
@@ -72,6 +73,7 @@ dl-routines = \
   dl-open \
   dl-origin \
   dl-printf \
+  dl-readonly-area \
   dl-reloc \
   dl-runtime \
   dl-scope \
@@ -379,6 +381,7 @@ tests += \
   tst-align3 \
   tst-audit-tlsdesc \
   tst-audit-tlsdesc-dlopen \
+  tst-audit-tlsdesc-dlopen2 \
   tst-audit1 \
   tst-audit2 \
   tst-audit8 \
@@ -416,6 +419,7 @@ tests += \
   tst-dlmopen3 \
   tst-dlmopen4 \
   tst-dlopen-auditdup \
+  tst-dlopen-constructor-null \
   tst-dlopen-self \
   tst-dlopen-tlsmodid \
   tst-dlopen-tlsreinit1 \
@@ -454,6 +458,7 @@ tests += \
   tst-noload \
   tst-non-directory-path \
   tst-null-argv \
+  tst-origin \
   tst-p_align1 \
   tst-p_align2 \
   tst-p_align3 \
@@ -497,6 +502,7 @@ tests += \
   tst-unique2 \
   tst-unwind-ctor \
   tst-unwind-main \
+  tst-version-hash-zero \
   unload3 \
   unload4 \
   unload5 \
@@ -567,9 +573,11 @@ tests-execstack-yes = \
   tst-execstack \
   tst-execstack-needed \
   tst-execstack-prog \
+  tst-execstack-tunable \
   # tests-execstack-yes
 tests-execstack-static-yes = \
-  tst-execstack-prog-static
+  tst-execstack-prog-static \
+  tst-execstack-prog-static-tunable \
   # tests-execstack-static-yes
 ifeq (yes,$(run-built-tests))
 tests-execstack-special-yes = \
@@ -760,6 +768,7 @@ modules-names += \
   libmarkermod5-3 \
   libmarkermod5-4 \
   libmarkermod5-5 \
+  liborigin-mod \
   libtracemod1-1 \
   libtracemod2-1 \
   libtracemod3-1 \
@@ -863,6 +872,7 @@ modules-names += \
   tst-auditmanymod8 \
   tst-auditmanymod9 \
   tst-auditmod-tlsdesc  \
+  tst-auditmod-tlsdesc2 \
   tst-auditmod1 \
   tst-auditmod11 \
   tst-auditmod12 \
@@ -905,6 +915,8 @@ modules-names += \
   tst-dlmopen1mod \
   tst-dlopen-auditdup-auditmod \
   tst-dlopen-auditdupmod \
+  tst-dlopen-constructor-null-mod1 \
+  tst-dlopen-constructor-null-mod2 \
   tst-dlopen-tlsreinitmod1 \
   tst-dlopen-tlsreinitmod2 \
   tst-dlopen-tlsreinitmod3 \
@@ -1033,6 +1045,9 @@ modules-names += \
   tst-unique2mod1 \
   tst-unique2mod2 \
   tst-unwind-ctor-lib \
+  tst-version-hash-zero-linkmod \
+  tst-version-hash-zero-mod \
+  tst-version-hash-zero-refmod \
   unload2dep \
   unload2mod \
   unload3mod1 \
@@ -1144,6 +1159,10 @@ tests-pie += \
   tst-pie1 \
   tst-pie2 \
   # tests-pie
+ifeq (yes,$(aligned-65536))
+tests += tst-pie-bss
+tests-pie += tst-pie-bss
+endif
 ifneq (,$(load-address-ldflag))
 tests += \
   tst-pie-address \
@@ -1159,6 +1178,10 @@ tests += \
 tests-static += \
   tst-pie-address-static \
   # tests-static
+ifeq (yes,$(aligned-65536))
+tests += tst-pie-bss-static
+tests-static += tst-pie-bss-static
+endif
 LDFLAGS-tst-pie-address-static += \
   $(load-address-ldflag)=$(pde-load-address)
 endif
@@ -1402,6 +1425,10 @@ tests-internal += tst-_dl_addr_inside_object
 tests-pie += tst-_dl_addr_inside_object
 $(objpfx)tst-_dl_addr_inside_object: $(objpfx)dl-addr-obj.os
 CFLAGS-tst-_dl_addr_inside_object.c += $(PIE-ccflag)
+endif
+
+ifeq ($(run-built-tests),yes)
+tests-special += $(objpfx)tst-origin.out
 endif
 
 include ../Rules
@@ -1988,6 +2015,9 @@ $(objpfx)tst-execstack.out: $(objpfx)tst-execstack-mod.so
 CPPFLAGS-tst-execstack.c += -DUSE_PTHREADS=0
 LDFLAGS-tst-execstack = -Wl,-z,noexecstack
 LDFLAGS-tst-execstack-mod.so = -Wl,-z,execstack
+ifeq ($(have-no-error-execstack),yes)
+LDFLAGS-tst-execstack-mod.so += -Wl,--no-error-execstack
+endif
 
 $(objpfx)tst-execstack-needed: $(objpfx)tst-execstack-mod.so
 LDFLAGS-tst-execstack-needed = -Wl,-z,noexecstack
@@ -1996,7 +2026,18 @@ LDFLAGS-tst-execstack-prog = -Wl,-z,execstack
 CFLAGS-tst-execstack-prog.c += -Wno-trampolines
 CFLAGS-tst-execstack-mod.c += -Wno-trampolines
 
+# It expects loading a module with executable stack to work.
+CFLAGS-tst-execstack-tunable.c += -DUSE_PTHREADS=0 -DDEFAULT_RWX_STACK=1
+$(objpfx)tst-execstack-tunable.out: $(objpfx)tst-execstack-mod.so
+tst-execstack-tunable-ENV = GLIBC_TUNABLES=glibc.rtld.execstack=2
+
+LDFLAGS-tst-execstack-prog-static-tunable = -Wl,-z,noexecstack
+tst-execstack-prog-static-tunable-ENV = GLIBC_TUNABLES=glibc.rtld.execstack=2
+
 LDFLAGS-tst-execstack-prog-static = -Wl,-z,execstack
+ifeq ($(have-no-error-execstack),yes)
+LDFLAGS-tst-execstack-prog-static += -Wl,--no-error-execstack
+endif
 CFLAGS-tst-execstack-prog-static.c += -Wno-trampolines
 
 ifeq (yes,$(build-hardcoded-path-in-tests))
@@ -2074,6 +2115,7 @@ $(objpfx)tst-array5-static-cmp.out: tst-array5-static.exp \
 
 CFLAGS-tst-pie1.c += $(pie-ccflag)
 CFLAGS-tst-pie2.c += $(pie-ccflag)
+CFLAGS-tst-pie-bss.c += $(pie-ccflag)
 CFLAGS-tst-pie-address.c += $(pie-ccflag)
 
 $(objpfx)tst-piemod1.so: $(libsupport)
@@ -3189,6 +3231,9 @@ $(objpfx)tst-audit-tlsdesc.out: $(objpfx)tst-auditmod-tlsdesc.so
 tst-audit-tlsdesc-ENV = LD_AUDIT=$(objpfx)tst-auditmod-tlsdesc.so
 $(objpfx)tst-audit-tlsdesc-dlopen.out: $(objpfx)tst-auditmod-tlsdesc.so
 tst-audit-tlsdesc-dlopen-ENV = LD_AUDIT=$(objpfx)tst-auditmod-tlsdesc.so
+$(objpfx)tst-audit-tlsdesc-dlopen2.out: $(objpfx)tst-auditmod-tlsdesc2.so \
+  $(patsubst %, $(objpfx)%.so, $(tlsmod17a-modules))
+tst-audit-tlsdesc-dlopen2-ENV = LD_AUDIT=$(objpfx)tst-auditmod-tlsdesc2.so
 
 $(objpfx)tst-dlmopen-twice.out: \
   $(objpfx)tst-dlmopen-twice-mod1.so \
@@ -3392,3 +3437,45 @@ $(objpfx)tst-nolink-libc-2: $(objpfx)tst-nolink-libc.o
 	  -Wl,--dynamic-linker=$(objpfx)ld.so
 $(objpfx)tst-nolink-libc-2.out: $(objpfx)tst-nolink-libc-2 $(objpfx)ld.so
 	$< > $@ 2>&1; $(evaluate-test)
+
+$(objpfx)tst-version-hash-zero.out: \
+  $(objpfx)tst-version-hash-zero-mod.so \
+  $(objpfx)tst-version-hash-zero-refmod.so
+LDFLAGS-tst-version-hash-zero-mod.so = \
+  -Wl,--version-script=tst-version-hash-zero-mod.map
+# The run-time test module tst-version-hash-zero-refmod.so is linked
+# to a stub module, tst-version-hash-zero-linkmod.so, to produce an
+# expected relocation error.
+$(objpfx)tst-version-hash-zero-refmod.so: \
+  $(objpfx)tst-version-hash-zero-linkmod.so
+LDFLAGS-tst-version-hash-zero-linkmod.so = \
+  -Wl,--version-script=tst-version-hash-zero-linkmod.map \
+  -Wl,--soname=tst-version-hash-zero-mod.so
+$(objpfx)tst-version-hash-zero-refmod.so: \
+  $(objpfx)tst-version-hash-zero-linkmod.so
+tst-version-hash-zero-refmod.so-no-z-defs = yes
+
+$(objpfx)tst-dlopen-constructor-null: \
+  $(objpfx)tst-dlopen-constructor-null-mod1.so \
+  $(objpfx)tst-dlopen-constructor-null-mod2.so
+$(objpfx)tst-dlopen-constructor-null-mod2.so: \
+  $(objpfx)tst-dlopen-constructor-null-mod1.so
+
+CFLAGS-tst-origin.c += $(no-stack-protector)
+CFLAGS-liborigin-mod.c += $(no-stack-protector)
+# Link tst-origin with liborigin-mod.so, but without a full path.
+LDFLAGS-tst-origin += -Wl,-rpath,\$$ORIGIN -L$(subst :, -L,$(rpath-link))
+LDLIBS-tst-origin += -lorigin-mod
+$(objpfx)tst-origin: +nolink-deps += $(objpfx)liborigin-mod.so
+$(objpfx)tst-origin: $(objpfx)liborigin-mod.so
+$(objpfx)tst-origin.out: tst-origin.sh $(objpfx)tst-origin
+	$(SHELL) \
+		$< \
+		'$(common-objpfx)' \
+		'$(test-wrapper-env)' \
+		'$(run-program-env)' \
+		'$(rpath-link)' \
+		tst-origin \
+		liborigin-mod.so \
+		> $@; \
+	$(evaluate-test)

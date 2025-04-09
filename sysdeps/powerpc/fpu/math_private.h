@@ -21,7 +21,6 @@
 
 #include <sysdep.h>
 #include <ldsodefs.h>
-#include <dl-procinfo.h>
 
 #include_next <math_private.h>
 
@@ -62,6 +61,7 @@ __ieee754_sqrtf128 (_Float128 __x)
 #ifdef _ARCH_PWR6
 /* ISA 2.03 provides frin/round() and cntlzw/ctznll().  */
 # define ROUNDEVEN_INTRINSICS 0
+# define ROUNDEVENF_INTRINSICS 0
 #endif
 
 #endif /* _PPC_MATH_PRIVATE_H_ */
