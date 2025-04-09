@@ -106,6 +106,7 @@ tests += \
   tst-cancel28 \
   tst-cancel29 \
   tst-cancel30 \
+  tst-cancel32 \
   tst-cleanup0 \
   tst-cleanup1 \
   tst-cleanup2 \
@@ -154,6 +155,7 @@ tests += \
   tst-exit3 \
   tst-flock1 \
   tst-flock2 \
+  tst-fopen-threaded \
   tst-fork1 \
   tst-fork2 \
   tst-fork3 \
@@ -303,7 +305,7 @@ tests-time64 += \
   tst-thrd-sleep-time64 \
   # tests-time64
 
-static-only-routines = pthread_atfork
+static-only-routines += pthread_atfork
 
 # Files which must not be linked with libpthread.
 tests-nolibpthread += \

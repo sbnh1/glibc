@@ -27,9 +27,8 @@ char *
 ttyname (int fd)
 {
   error_t err;
-  static char nodename[1024];	/* XXX */
+  static string_t nodename;
 
-  nodename[0] = '\0';
   if (err = HURD_DPORT_USE (fd, __term_get_nodename (port, nodename)))
     {
       if (err == MIG_BAD_ID || err == EOPNOTSUPP)

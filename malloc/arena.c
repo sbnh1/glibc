@@ -40,19 +40,20 @@
    mmap threshold, so that requests with a size just below that
    threshold can be fulfilled without creating too many heaps.  */
 
-/* When huge pages are used to create new arenas, the maximum and minimum
-   size are based on the runtime defined huge page size.  */
+/* HEAP_MAX_SIZE should be larger than the huge page size, otherwise heaps will
+   use not huge pages.  It is a constant so arena_for_chunk() is efficient.  */
 
-static inline size_t
+static __always_inline size_t
 heap_min_size (void)
 {
-  return mp_.hp_pagesize == 0 ? HEAP_MIN_SIZE : mp_.hp_pagesize;
+  return mp_.hp_pagesize == 0 || mp_.hp_pagesize > HEAP_MAX_SIZE
+	  ? HEAP_MIN_SIZE : mp_.hp_pagesize;
 }
 
-static inline size_t
+static __always_inline size_t
 heap_max_size (void)
 {
-  return mp_.hp_pagesize == 0 ? HEAP_MAX_SIZE : mp_.hp_pagesize * 4;
+  return HEAP_MAX_SIZE;
 }
 
 /***************************************************************************/
@@ -140,14 +141,14 @@ static bool __malloc_initialized = false;
 
 /* find the heap and corresponding arena for a given ptr */
 
-static inline heap_info *
+static __always_inline heap_info *
 heap_for_ptr (void *ptr)
 {
   size_t max_size = heap_max_size ();
   return PTR_ALIGN_DOWN (ptr, max_size);
 }
 
-static inline struct malloc_state *
+static __always_inline struct malloc_state *
 arena_for_chunk (mchunkptr ptr)
 {
   return chunk_main_arena (ptr) ? &main_arena : heap_for_ptr (ptr)->ar_ptr;
@@ -231,8 +232,8 @@ __malloc_fork_unlock_child (void)
 }
 
 #define TUNABLE_CALLBACK_FNDECL(__name, __type) \
-static inline int do_ ## __name (__type value);				      \
-static void									      \
+static __always_inline int do_ ## __name (__type value);		      \
+static void								      \
 TUNABLE_CALLBACK (__name) (tunable_val_t *valp)				      \
 {									      \
   __type value = (__type) (valp)->numval;				      \
@@ -313,7 +314,7 @@ ptmalloc_init (void)
   TUNABLE_GET (mxfast, size_t, TUNABLE_CALLBACK (set_mxfast));
   TUNABLE_GET (hugetlb, size_t, TUNABLE_CALLBACK (set_hugetlb));
 
-  if (mp_.hp_pagesize > 0)
+  if (mp_.hp_pagesize > 0 && mp_.hp_pagesize <= heap_max_size ())
     {
       /* Force mmap for main arena instead of sbrk, so MAP_HUGETLB is always
          tried.  Also tune the mmap threshold, so allocation smaller than the
@@ -460,7 +461,7 @@ alloc_new_heap  (size_t size, size_t top_pad, size_t pagesize,
 static heap_info *
 new_heap (size_t size, size_t top_pad)
 {
-  if (__glibc_unlikely (mp_.hp_pagesize != 0))
+  if (mp_.hp_pagesize != 0 && mp_.hp_pagesize <= heap_max_size ())
     {
       heap_info *h = alloc_new_heap (size, top_pad, mp_.hp_pagesize,
 				     mp_.hp_flags);

@@ -58,21 +58,5 @@ FORWARD_NORETURN (__pthread_exit, void, (void *retval), (retval),
 		  exit (EXIT_SUCCESS))
 strong_alias (__pthread_exit, pthread_exit);
 
-FORWARD (pthread_mutex_destroy, (pthread_mutex_t *mutex), (mutex), 0)
-
-FORWARD (pthread_mutex_init,
-	 (pthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr),
-	 (mutex, mutexattr), 0)
-
-FORWARD (pthread_mutex_lock, (pthread_mutex_t *mutex), (mutex), 0)
-
-FORWARD (pthread_mutex_unlock, (pthread_mutex_t *mutex), (mutex), 0)
-
-FORWARD (__pthread_setcancelstate, (int state, int *oldstate),
-	 (state, oldstate), 0)
-strong_alias (__pthread_setcancelstate, pthread_setcancelstate);
-
-FORWARD (pthread_setcanceltype, (int type, int *oldtype), (type, oldtype), 0)
-
 FORWARD2 (__pthread_get_cleanup_stack, struct __pthread_cancelation_handler **,
 	  (void), (), return &__pthread_cleanup_stack);

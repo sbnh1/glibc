@@ -300,6 +300,8 @@ ifeq ($(subdir),elf)
 check-execstack-xfail += ld.so libc.so libpthread.so
 # We always create a thread for signals
 test-xfail-tst-single_threaded-pthread-static = yes
+# Bug 25263
+test-xfail-tst-origin = yes
 
 CFLAGS-tst-execstack.c += -DDEFAULT_RWX_STACK=1
 endif
@@ -335,6 +337,9 @@ tests-unsupported += tst-vfprintf-width-prec-alloc
 endif
 ifeq ($(subdir),stdlib)
 tests-unsupported += test-bz22786 tst-strtod-overflow
+# pthread_cleanup_combined_push/pthread_cleanup_combined_pop requires cleanup
+# support (BZ 32058).
+test-xfail-tst-qsortx7 = yes
 endif
 ifeq ($(subdir),timezone)
 tests-unsupported += tst-tzset
