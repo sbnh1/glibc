@@ -298,7 +298,7 @@
 # define tidx2usize(idx)	(((size_t) idx) * MALLOC_ALIGNMENT + MINSIZE - SIZE_SZ)
 
 /* When "x" is from chunksize().  */
-# define csize2tidx(x) (((x) - MINSIZE + MALLOC_ALIGNMENT - 1) / MALLOC_ALIGNMENT)
+# define csize2tidx(x) (((x) - MINSIZE) / MALLOC_ALIGNMENT)
 /* When "x" is a user-provided size.  */
 # define usize2tidx(x) csize2tidx (request2size (x))
 
@@ -1322,9 +1322,12 @@ nextchunk-> +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    value is less than PTRDIFF_T.  Returns the requested size or
    MINSIZE in case the value is less than MINSIZE, or 0 if any of the
    previous checks fail.  */
-static inline size_t
+static __always_inline size_t
 checked_request2size (size_t req) __nonnull (1)
 {
+  _Static_assert (PTRDIFF_MAX <= SIZE_MAX / 2,
+                  "PTRDIFF_MAX is not more than half of SIZE_MAX");
+
   if (__glibc_unlikely (req > PTRDIFF_MAX))
     return 0;
 
@@ -1782,7 +1785,7 @@ static uint8_t global_max_fast;
   global_max_fast = (((size_t) (s) <= MALLOC_ALIGN_MASK - SIZE_SZ)	\
                      ? MIN_CHUNK_SIZE / 2 : ((s + SIZE_SZ) & ~MALLOC_ALIGN_MASK))
 
-static inline INTERNAL_SIZE_T
+static __always_inline INTERNAL_SIZE_T
 get_max_fast (void)
 {
   /* Tell the GCC optimizers that global_max_fast is never larger
@@ -2646,7 +2649,7 @@ sysmalloc (INTERNAL_SIZE_T nb, mstate av)
 			CHUNK_HDR_SZ | PREV_INUSE);
               set_foot (chunk_at_offset (old_top, old_size), CHUNK_HDR_SZ);
               set_head (old_top, old_size | PREV_INUSE | NON_MAIN_ARENA);
-              _int_free (av, old_top, 1);
+              _int_free_chunk (av, old_top, chunksize (old_top), 1);
             }
           else
             {
@@ -2912,7 +2915,7 @@ sysmalloc (INTERNAL_SIZE_T nb, mstate av)
                       /* If possible, release the rest. */
                       if (old_size >= MINSIZE)
                         {
-                          _int_free (av, old_top, 1);
+                          _int_free_chunk (av, old_top, chunksize (old_top), 1);
                         }
                     }
                 }
@@ -3245,7 +3248,7 @@ tcache_double_free_verify (tcache_entry *e, size_t tc_idx)
 
 /* Try to free chunk to the tcache, if success return true.
    Caller must ensure that chunk and size are valid.  */
-static inline bool
+static __always_inline bool
 tcache_free (mchunkptr p, INTERNAL_SIZE_T size)
 {
   bool done = false;
@@ -3380,26 +3383,17 @@ tcache_thread_shutdown (void)
 #endif /* !USE_TCACHE  */
 
 #if IS_IN (libc)
-void *
-__libc_malloc (size_t bytes)
+
+static void * __attribute_noinline__
+__libc_malloc2 (size_t bytes)
 {
   mstate ar_ptr;
   void *victim;
 
-  _Static_assert (PTRDIFF_MAX <= SIZE_MAX / 2,
-                  "PTRDIFF_MAX is not more than half of SIZE_MAX");
-
   if (!__malloc_initialized)
     ptmalloc_init ();
-#if USE_TCACHE
-  bool err = tcache_try_malloc (bytes, &victim);
 
-  if (err)
-      return NULL;
-
-  if (victim)
-      return tag_new_usable (victim);
-#endif
+  MAYBE_INIT_TCACHE ();
 
   if (SINGLE_THREAD_P)
     {
@@ -3429,6 +3423,19 @@ __libc_malloc (size_t bytes)
   assert (!victim || chunk_is_mmapped (mem2chunk (victim)) ||
           ar_ptr == arena_for_chunk (mem2chunk (victim)));
   return victim;
+}
+
+void *
+__libc_malloc (size_t bytes)
+{
+#if USE_TCACHE
+  size_t tc_idx = csize2tidx (checked_request2size (bytes));
+
+  if (tcache_available (tc_idx))
+    return tag_new_usable (tcache_get (tc_idx));
+#endif
+
+  return __libc_malloc2 (bytes);
 }
 libc_hidden_def (__libc_malloc)
 
@@ -3530,10 +3537,7 @@ __libc_realloc (void *oldmem, size_t bytes)
   if (chunk_is_mmapped (oldp))
     ar_ptr = NULL;
   else
-    {
-      MAYBE_INIT_TCACHE ();
-      ar_ptr = arena_for_chunk (oldp);
-    }
+    ar_ptr = arena_for_chunk (oldp);
 
   /* Little security check which won't hurt performance: the allocator
      never wraps around at the end of the address space.  Therefore
@@ -3608,7 +3612,7 @@ __libc_realloc (void *oldmem, size_t bytes)
 	  size_t sz = memsize (oldp);
 	  memcpy (newp, oldmem, sz);
 	  (void) tag_region (chunk2mem (oldp), sz);
-          _int_free (ar_ptr, oldp, 0);
+          _int_free_chunk (ar_ptr, oldp, chunksize (oldp), 0);
         }
     }
 
@@ -3691,6 +3695,8 @@ _mid_memalign (size_t alignment, size_t bytes, void *address)
 	return NULL;
       }
     size_t tc_idx = csize2tidx (tbytes);
+
+    MAYBE_INIT_TCACHE ();
 
     if (tcache_available (tc_idx))
       {
@@ -4005,6 +4011,9 @@ _int_malloc (mstate av, size_t bytes)
 		    {
 		      if (__glibc_unlikely (misaligned_chunk (tc_victim)))
 			malloc_printerr ("malloc(): unaligned fastbin chunk detected 3");
+		      size_t victim_tc_idx = csize2tidx (chunksize (tc_victim));
+		      if (__glibc_unlikely (tc_idx != victim_tc_idx))
+			malloc_printerr ("malloc(): chunk size mismatch in fastbin");
 		      if (SINGLE_THREAD_P)
 			*fb = REVEAL_PTR (tc_victim->fd);
 		      else
@@ -4240,6 +4249,9 @@ _int_malloc (mstate av, size_t bytes)
                     {
                       fwd = bck;
                       bck = bck->bk;
+
+                      if (__glibc_unlikely (fwd->fd->bk_nextsize->fd_nextsize != fwd->fd))
+                        malloc_printerr ("malloc(): largebin double linked list corrupted (nextsize)");
 
                       victim->fd_nextsize = fwd->fd;
                       victim->bk_nextsize = fwd->fd->bk_nextsize;
@@ -4548,7 +4560,7 @@ _int_malloc (mstate av, size_t bytes)
    ------------------------------ free ------------------------------
  */
 
-static inline void
+static __always_inline void
 _int_free_check (mstate av, mchunkptr p, INTERNAL_SIZE_T size)
 {
   /* Little security check which won't hurt performance: the
@@ -4682,7 +4694,7 @@ _int_free_chunk (mstate av, mchunkptr p, INTERNAL_SIZE_T size, int have_lock)
    P has already been locked.  It will perform sanity check, then try the
    fast path to free into tcache.  If the attempt not success, free the
    chunk to arena.  */
-static inline void
+static __always_inline void
 _int_free (mstate av, mchunkptr p, int have_lock)
 {
   INTERNAL_SIZE_T size;        /* its size */
@@ -5051,7 +5063,7 @@ _int_realloc (mstate av, mchunkptr oldp, INTERNAL_SIZE_T oldsize,
 	      (void) tag_region (oldmem, sz);
 	      newmem = tag_new_usable (newmem);
 	      memcpy (newmem, oldmem, sz);
-	      _int_free (av, oldp, 1);
+	      _int_free_chunk (av, oldp, chunksize (oldp), 1);
 	      check_inuse_chunk (av, newp);
 	      return newmem;
             }
@@ -5079,7 +5091,7 @@ _int_realloc (mstate av, mchunkptr oldp, INTERNAL_SIZE_T oldsize,
                 (av != &main_arena ? NON_MAIN_ARENA : 0));
       /* Mark remainder as inuse so free() won't complain */
       set_inuse_bit_at_offset (remainder, remainder_size);
-      _int_free (av, remainder, 1);
+      _int_free_chunk (av, remainder, chunksize (remainder), 1);
     }
 
   check_inuse_chunk (av, newp);

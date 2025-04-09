@@ -51,6 +51,33 @@ nonfmt-xprintf-stems := \
 
 xprintf-stems := $(sort $(fmt-xprintf-stems) $(nonfmt-xprintf-stems))
 
+# List of markers for scanf family function tests.
+xscanf-funcs := s f ss v vf vs
+
+# List of data types and formats for individual per-conversion scanf tests.
+# Further conversions are provided by sysdeps.
+xscanf-kinds := char int real uint
+fmt-xscanf-char-convs := c
+fmts-xscanf-char := b c s
+fmt-xscanf-int-convs := char llong short
+fmts-xscanf-int := d i
+fmt-xscanf-real-convs :=
+fmts-xscanf-real := aa a ee e ff f gg g
+fmt-xscanf-uint-convs := uchar ullong ushort
+fmts-xscanf-uint := b o u xx x
+
+xscanf-convs = $(sort $(fmt-xscanf-char-convs) $(fmt-xscanf-int-convs) \
+		      $(fmt-xscanf-real-convs) $(fmt-xscanf-uint-convs))
+
+xscanf-srcs = $(foreach p,$(xscanf-funcs), \
+		$(foreach c,$(xscanf-convs),tst-scanf-format-$(p)-$(c)))
+
+xscanf-stems = $(sort $(foreach k,$(xscanf-kinds), \
+			$(foreach f,$(fmts-xscanf-$(k)), \
+			  $(foreach p,$(xscanf-funcs), \
+			    $(foreach c,$(fmt-xscanf-$(k)-convs), \
+			      tst-scanf-format-$(p)-$(c)-$(f))))))
+
 headers := \
   bits/printf-ldbl.h \
   bits/stdio_lim.h \
@@ -59,6 +86,7 @@ headers := \
   # headers
 
 routines := \
+  _fitoa_word \
   _itoa \
   _itowa \
   asprintf \
@@ -234,9 +262,12 @@ tests := \
   tst-bz11319-fortify2 \
   tst-cookie \
   tst-dprintf-length \
+  tst-fclose-offset \
   tst-fdopen \
   tst-fdopen2 \
   tst-ferror \
+  tst-fflush-all-input \
+  tst-fflush-mmap \
   tst-fgets \
   tst-fgets2 \
   tst-fileno \
@@ -244,6 +275,7 @@ tests := \
   tst-fmemopen2 \
   tst-fmemopen3 \
   tst-fmemopen4 \
+  tst-fopen \
   tst-fphex \
   tst-fphex-wide \
   tst-fread \
@@ -259,9 +291,12 @@ tests := \
   tst-freopen64-7 \
   tst-freopen7 \
   tst-fseek \
+  tst-fseek-mmap \
   tst-fwrite \
   tst-fwrite-memstrm \
   tst-fwrite-overflow \
+  tst-fwrite-pipe \
+  tst-fwrite-pos \
   tst-fwrite-ro \
   tst-getline \
   tst-getline-enomem \
@@ -281,6 +316,7 @@ tests := \
   tst-printf-round \
   tst-printfsz \
   tst-put-error \
+  tst-read-offset \
   tst-renameat2 \
   tst-rndseek \
   tst-scanf-binary-c11 \
@@ -302,6 +338,7 @@ tests := \
   tst-swscanf \
   tst-tmpnam \
   tst-ungetc \
+  tst-ungetc-fflush \
   tst-ungetc-leak \
   tst-ungetc-nomem \
   tst-unlockedio \
@@ -341,7 +378,9 @@ endif
 endif
 
 tests-container += \
-  tst-popen3
+  tst-popen3 \
+  tst-setvbuf2 \
+  tst-setvbuf2-ind
   # tests-container
 
 generated += \
@@ -353,10 +392,14 @@ generated += \
 
 tests-internal = \
   tst-grouping_iterator \
+  tst-setvbuf2 \
+  tst-setvbuf2-ind \
   # tests-internal
 
 test-srcs = \
   $(xprintf-srcs) \
+  $(xscanf-srcs) \
+  tst-fwrite-bz29459 \
   tst-printf \
   tst-printfsz-islongdouble \
   tst-unbputc \
@@ -365,6 +408,8 @@ test-srcs = \
 ifeq ($(run-built-tests),yes)
 tests-special += \
   $(foreach f,$(xprintf-stems),$(objpfx)$(f).out) \
+  $(foreach f,$(xscanf-stems),$(objpfx)$(f).out) \
+  $(objpfx)tst-fwrite-bz29459.out \
   $(objpfx)tst-printf.out \
   $(objpfx)tst-printfsz-islongdouble.out \
   $(objpfx)tst-setvbuf1-cmp.out \
@@ -375,6 +420,7 @@ ifeq (yes,$(build-shared))
 ifneq ($(PERL),no)
 tests-special += \
   $(foreach f,$(xprintf-stems),$(objpfx)$(f)-mem.out) \
+  $(foreach f,$(xscanf-stems),$(objpfx)$(f)-mem.out) \
   $(objpfx)tst-freopen2-mem.out \
   $(objpfx)tst-freopen3-mem.out \
   $(objpfx)tst-freopen4-mem.out \
@@ -397,6 +443,8 @@ tests-special += \
 generated += \
   $(foreach f,$(xprintf-stems),$(f)-mem.out) \
   $(foreach f,$(xprintf-stems),$(f).mtrace) \
+  $(foreach f,$(xscanf-stems),$(f)-mem.out) \
+  $(foreach f,$(xscanf-stems),$(f).mtrace) \
   tst-freopen2-mem.out \
   tst-freopen2.mtrace \
   tst-freopen3-mem.out \
@@ -562,6 +610,10 @@ tst-freopen64-6-ENV = \
   MALLOC_TRACE=$(objpfx)tst-freopen64-6.mtrace \
   LD_PRELOAD=$(common-objpfx)malloc/libc_malloc_debug.so
 
+$(objpfx)tst-fwrite-bz29459.out: tst-fwrite-bz29459.sh $(objpfx)tst-fwrite-bz29459
+	$(SHELL) $< $(common-objpfx) '$(test-program-prefix)'; \
+	$(evaluate-test)
+
 $(objpfx)tst-unbputc.out: tst-unbputc.sh $(objpfx)tst-unbputc
 	$(SHELL) $< $(common-objpfx) '$(test-program-prefix)'; \
 	$(evaluate-test)
@@ -585,6 +637,26 @@ $(objpfx)tst-printf-format-%.out: \
 	$(make-tst-printf-format-out) > $@; \
 	$(evaluate-test)
 
+# With scanf format tests reuse the same executable for all the inputs
+# of the same data type that use a different conversion specifier each.
+define tst-scanf-format-rule
+$$(objpfx)tst-scanf-format-$(1)-$(2)-$(3).out: \
+	tst-scanf-format-$(2)-$(3).input $$(objpfx)tst-scanf-format-$(1)-$(2)
+	$$(make-tst-scanf-format-out) > $$@ < $$<; \
+	$$(evaluate-test)
+endef
+make-tst-scanf-format-out = \
+  $(test-wrapper-env) \
+  $(run-program-env) \
+  MALLOC_TRACE=$(@:.out=.mtrace) \
+  LD_PRELOAD=$(common-objpfx)malloc/libc_malloc_debug.so \
+  $(host-test-program-cmd)
+$(foreach k,$(xscanf-kinds), \
+  $(foreach f,$(fmts-xscanf-$(k)), \
+    $(foreach p,$(xscanf-funcs), \
+      $(foreach c,$(fmt-xscanf-$(k)-convs), \
+	$(eval $(call tst-scanf-format-rule,$(p),$(c),$(f)))))))
+
 $(objpfx)tst-printfsz-islongdouble.out: \
   tst-printfsz-islongdouble.sh $(objpfx)tst-printfsz-islongdouble
 	$(SHELL) $^ '$(test-program-prefix)' $@; \
@@ -599,8 +671,11 @@ $(objpfx)tst-%-mem.out: $(objpfx)tst-%.out
 	$(common-objpfx)malloc/mtrace $(objpfx)tst-$*.mtrace > $@; \
 	$(evaluate-test)
 $(objpfx)tst-printf-format-%-mem.out: $(objpfx)tst-printf-format-%.out
-	$(common-objpfx)malloc/mtrace \
-	  $(objpfx)tst-printf-format-$*.mtrace > $@; \
+	{ test -r $(objpfx)tst-printf-format-$*.mtrace \
+	|| ( echo "$(objpfx)tst-printf-format-$*.mtrace does not exist"; \
+	     exit 77; ) \
+	&& $(common-objpfx)malloc/mtrace \
+	  $(objpfx)tst-printf-format-$*.mtrace; } > $@; \
 	$(evaluate-test)
 
 errlist-h = $(firstword $(wildcard $(addsuffix /errlist.h,$(sysdirs) .)))
@@ -645,6 +720,8 @@ CFLAGS-dprintf.c += $(config-cflags-wno-ignored-attributes)
 # off for non-shared builds.
 CFLAGS-_itoa.o = $(no-stack-protector)
 CFLAGS-_itoa.op = $(no-stack-protector)
+CFLAGS-_fitoa_word.o = $(no-stack-protector)
+CFLAGS-_fitoa_word.op = $(no-stack-protector)
 
 CFLAGS-scanf13.c += $(test-config-cflags-wno-fortify-source)
 
@@ -689,8 +766,21 @@ $(objpfx)tst-setvbuf1-cmp.out: tst-setvbuf1.expect $(objpfx)tst-setvbuf1.out
 	cmp $^ > $@; \
 	$(evaluate-test)
 
+CFLAGS-tst-setvbuf2.c += -DIND_PROC=\"$(objpfx)tst-setvbuf2-ind\"
+$(objpfx)tst-setvbuf2-ind : $(objpfx)tst-setvbuf2-ind.o $(shared-thread-library)
+$(objpfx)tst-setvbuf2.out: $(objpfx)tst-setvbuf2-ind
+$(objpfx)tst-setvbuf2 : $(shared-thread-library)
+
 $(objpfx)tst-printf-round: $(libm)
 $(objpfx)tst-scanf-round: $(libm)
+
+# With scanf format tests real conversions depend on libm.
+define tst-scanf-format-libm-dep
+$$(objpfx)tst-scanf-format-$(1)-$(2): $$(libm)
+endef
+$(foreach p,$(xscanf-funcs), \
+  $(foreach c,$(fmt-xscanf-real-convs), \
+    $(eval $(call tst-scanf-format-libm-dep,$(p),$(c)))))
 
 $(objpfx)tst-freopen7: $(shared-thread-library)
 $(objpfx)tst-freopen64-7: $(shared-thread-library)

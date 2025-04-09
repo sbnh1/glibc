@@ -23,6 +23,7 @@
 
 #include <pthread.h>
 #include <link.h>
+#include <bits/cancelation.h>
 
 /* Attribute to indicate thread creation was issued from C11 thrd_create.  */
 #define ATTR_C11_THREAD ((void*)(uintptr_t)-1)
@@ -31,14 +32,46 @@ extern void __pthread_init_static_tls (struct link_map *) attribute_hidden;
 
 /* These represent the interface used by glibc itself.  */
 
+extern int __pthread_barrier_destroy (pthread_barrier_t *__barrier);
+libc_hidden_proto (__pthread_barrier_destroy)
+extern int __pthread_barrier_init (pthread_barrier_t *__barrier,
+				const pthread_barrierattr_t *__attr,
+				unsigned __count);
+libc_hidden_proto (__pthread_barrier_init)
+extern int __pthread_barrier_wait (pthread_barrier_t *__barrier);
+libc_hidden_proto (__pthread_barrier_wait)
+extern int __pthread_barrierattr_destroy (pthread_barrierattr_t *__attr);
+libc_hidden_proto (__pthread_barrierattr_destroy)
+extern int __pthread_barrierattr_getpshared (const pthread_barrierattr_t *__attr,
+					   int *__pshared);
+libc_hidden_proto (__pthread_barrierattr_getpshared)
+extern int __pthread_barrierattr_init (pthread_barrierattr_t *__attr);
+libc_hidden_proto (__pthread_barrierattr_init)
+extern int __pthread_barrierattr_setpshared (pthread_barrierattr_t *__attr,
+					   int __pshared);
+libc_hidden_proto (__pthread_barrierattr_setpshared)
 extern int __pthread_mutex_init (pthread_mutex_t *__mutex, const pthread_mutexattr_t *__attr);
-extern int __pthread_mutex_destroy (pthread_mutex_t *__mutex);
+libc_hidden_proto (__pthread_mutex_init)
+extern int __pthread_mutex_clocklock (pthread_mutex_t *__mutex, clockid_t __clockid,
+				    const struct timespec *__abstime);
+libc_hidden_proto (__pthread_mutex_clocklock)
+extern int __pthread_mutex_consistent (pthread_mutex_t *__mtxp);
+libc_hidden_proto (__pthread_mutex_consistent)
 extern int __pthread_mutex_lock (pthread_mutex_t *__mutex);
+libc_hidden_proto (__pthread_mutex_lock)
+extern int __pthread_mutex_getprioceiling (const pthread_mutex_t *__mutex,
+					 int *__prioceiling);
+libc_hidden_proto (__pthread_mutex_getprioceiling)
+extern int __pthread_mutex_setprioceiling (pthread_mutex_t *__mutex,
+					 int __prio, int *__oldprio);
+libc_hidden_proto (__pthread_mutex_setprioceiling)
 extern int __pthread_mutex_trylock (pthread_mutex_t *_mutex);
+libc_hidden_proto (__pthread_mutex_trylock)
 extern int __pthread_mutex_timedlock (pthread_mutex_t *__mutex,
      const struct timespec *__abstime);
+libc_hidden_proto (__pthread_mutex_timedlock)
 extern int __pthread_mutex_unlock (pthread_mutex_t *__mutex);
-extern int __pthread_mutexattr_settype (pthread_mutexattr_t *attr, int kind);
+libc_hidden_proto (__pthread_mutex_unlock)
 extern int __pthread_mutexattr_getpshared(const pthread_mutexattr_t *__restrict __attr,
 					int *__restrict __pshared);
 libc_hidden_proto (__pthread_mutexattr_getpshared)
@@ -82,6 +115,28 @@ libc_hidden_proto (__pthread_mutexattr_gettype)
 extern int __pthread_mutexattr_settype(pthread_mutexattr_t *__attr,
 				     int __type);
 libc_hidden_proto (__pthread_mutexattr_settype)
+extern int __pthread_rwlock_clockrdlock (pthread_rwlock_t *__rwlock,
+				       clockid_t __clockid, const struct timespec *__abstime);
+libc_hidden_proto (__pthread_rwlock_clockrdlock)
+extern int __pthread_rwlock_clockwrlock (pthread_rwlock_t *__rwlock,
+				       clockid_t __clockid, const struct timespec *__abstime);
+libc_hidden_proto (__pthread_rwlock_clockwrlock)
+extern int __pthread_rwlock_timedrdlock (struct __pthread_rwlock *__rwlock,
+				       const struct timespec *__abstime);
+libc_hidden_proto (__pthread_rwlock_timedrdlock)
+extern int __pthread_rwlock_timedwrlock (struct __pthread_rwlock *__rwlock,
+				       const struct timespec *__abstime);
+libc_hidden_proto (__pthread_rwlock_timedwrlock)
+extern int __pthread_rwlockattr_destroy (pthread_rwlockattr_t *__attr);
+libc_hidden_proto (__pthread_rwlockattr_destroy)
+extern int __pthread_rwlockattr_getpshared (const pthread_rwlockattr_t *__attr,
+					  int *__pshared);
+libc_hidden_proto (__pthread_rwlockattr_getpshared)
+extern int __pthread_rwlockattr_init (pthread_rwlockattr_t *__attr);
+libc_hidden_proto (__pthread_rwlockattr_init)
+extern int __pthread_rwlockattr_setpshared (pthread_rwlockattr_t *__attr,
+					  int __pshared);
+libc_hidden_proto (__pthread_rwlockattr_setpshared)
 
 extern int __pthread_cond_init (pthread_cond_t *cond,
 				const pthread_condattr_t *cond_attr);
@@ -104,6 +159,9 @@ extern int __pthread_cond_clockwait (pthread_cond_t *cond,
 libc_hidden_proto (__pthread_cond_clockwait);
 extern int __pthread_cond_destroy (pthread_cond_t *cond);
 libc_hidden_proto (__pthread_cond_destroy);
+
+extern int __pthread_setcanceltype (int __type, int *__oldtype);
+libc_hidden_proto (__pthread_setcanceltype);
 extern int __pthread_sigmask (int, const sigset_t *, sigset_t *);
 libc_hidden_proto (__pthread_sigmask);
 
@@ -128,8 +186,6 @@ void *__pthread_getspecific (pthread_key_t key);
 int __pthread_setspecific (pthread_key_t key, const void *value);
 int __pthread_key_delete (pthread_key_t key);
 int __pthread_once (pthread_once_t *once_control, void (*init_routine) (void));
-
-int __pthread_setcancelstate (int state, int *oldstate);
 
 int __pthread_getattr_np (pthread_t, pthread_attr_t *);
 int __pthread_attr_getstackaddr (const pthread_attr_t *__restrict __attr,
@@ -163,17 +219,33 @@ hidden_proto (__pthread_detach)
 hidden_proto (__pthread_key_create)
 hidden_proto (__pthread_getspecific)
 hidden_proto (__pthread_setspecific)
-hidden_proto (__pthread_mutex_init)
-hidden_proto (__pthread_mutex_destroy)
-hidden_proto (__pthread_mutex_lock)
-hidden_proto (__pthread_mutex_trylock)
-hidden_proto (__pthread_mutex_unlock)
-hidden_proto (__pthread_mutex_timedlock)
 hidden_proto (__pthread_get_cleanup_stack)
+#endif
+
+#if !defined(__NO_WEAK_PTHREAD_ALIASES) && !IS_IN (libpthread)
+# ifdef weak_extern
+weak_extern (__pthread_exit)
+# else
+#  pragma weak __pthread_exit
+# endif
 #endif
 
 #define ASSERT_TYPE_SIZE(type, size) 					\
   _Static_assert (sizeof (type) == size,				\
 		  "sizeof (" #type ") != " #size)
+
+ /* Special cleanup macros which register cleanup both using
+    __pthread_cleanup_{push,pop} and using cleanup attribute.  This is needed
+    for qsort, so that it supports both throwing exceptions from the caller
+    sort function callback (only cleanup  attribute works there) and
+    cancellation of the thread running the callback if the callback or some
+    routines it calls don't have unwind information.
+    TODO: add support for cleanup routines.  */
+#ifndef pthread_cleanup_combined_push
+# define pthread_cleanup_combined_push  __pthread_cleanup_push
+#endif
+#ifndef pthread_cleanup_combined_pop
+# define pthread_cleanup_combined_pop   __pthread_cleanup_pop
+#endif
 
 #endif	/* pthreadP.h */

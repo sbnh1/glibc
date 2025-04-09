@@ -55,6 +55,8 @@ routines = \
   gethostname_chk \
   gets_chk \
   getwd_chk \
+  inet_ntop_chk \
+  inet_pton_chk \
   longjmp_chk \
   mbsnrtowcs_chk \
   mbsrtowcs_chk \
@@ -74,6 +76,7 @@ routines = \
   readlink_chk \
   readlinkat_chk \
   readonly-area \
+  readonly-area-fallback \
   realpath_chk \
   recv_chk \
   recvfrom_chk \
@@ -179,8 +182,14 @@ CPPFLAGS-tst-longjmp_chk3.c += $(no-fortify-source) -D_FORTIFY_SOURCE=1
 CPPFLAGS-tst-realpath-chk.c += $(no-fortify-source) -D_FORTIFY_SOURCE=2
 CPPFLAGS-tst-chk-cancel.c += $(no-fortify-source) -D_FORTIFY_SOURCE=2
 CFLAGS-tst-sprintf-fortify-rdonly.c += $(no-fortify-source) -D_FORTIFY_SOURCE=2
+CFLAGS-tst-sprintf-fortify-rdonly-mod.c += $(no-fortify-source) -D_FORTIFY_SOURCE=2
+CFLAGS-tst-sprintf-fortify-rdonly-dlopen.c += $(no-fortify-source) -D_FORTIFY_SOURCE=2
 CFLAGS-tst-fortify-syslog.c += $(no-fortify-source) -D_FORTIFY_SOURCE=2
 CFLAGS-tst-fortify-wide.c += $(no-fortify-source) -D_FORTIFY_SOURCE=2
+
+$(objpfx)tst-sprintf-fortify-rdonly: \
+	$(objpfx)tst-sprintf-fortify-rdonly-mod.so \
+	$(objpfx)tst-sprintf-fortify-rdonly-dlopen.so
 
 # _FORTIFY_SOURCE tests.
 # Auto-generate tests for _FORTIFY_SOURCE for different levels, compilers and
@@ -301,6 +310,11 @@ tests-time64 += \
 tests-container += \
   tst-fortify-syslog \
   # tests-container
+
+modules-names += \
+  tst-sprintf-fortify-rdonly-dlopen \
+  tst-sprintf-fortify-rdonly-mod \
+  # modules-names
 
 ifeq ($(have-ssp),yes)
 tests += tst-ssp-1
