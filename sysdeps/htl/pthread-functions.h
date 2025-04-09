@@ -22,19 +22,8 @@
 #include <pthread.h>
 
 void __pthread_exit (void *) __attribute__ ((__noreturn__));
-int _pthread_mutex_destroy (pthread_mutex_t *);
-int _pthread_mutex_init (pthread_mutex_t *,
-			 const pthread_mutexattr_t *);
-int __pthread_mutex_lock (pthread_mutex_t *);
-int __pthread_mutex_trylock (pthread_mutex_t *);
-int __pthread_mutex_unlock (pthread_mutex_t *);
-int __pthread_setcancelstate (int, int *);
-int __pthread_setcanceltype (int, int *);
 struct __pthread_cancelation_handler **__pthread_get_cleanup_stack (void);
 int __pthread_once (pthread_once_t *, void (*) (void));
-int __pthread_rwlock_rdlock (pthread_rwlock_t *);
-int __pthread_rwlock_wrlock (pthread_rwlock_t *);
-int __pthread_rwlock_unlock (pthread_rwlock_t *);
 int __pthread_key_create (pthread_key_t *, void (*) (void *));
 void *__pthread_getspecific (pthread_key_t);
 int __pthread_setspecific (pthread_key_t, const void *);
@@ -49,19 +38,8 @@ int _cthreads_ftrylockfile (FILE *);
 struct pthread_functions
 {
   void (*ptr___pthread_exit) (void *) __attribute__ ((__noreturn__));
-  int (*ptr_pthread_mutex_destroy) (pthread_mutex_t *);
-  int (*ptr_pthread_mutex_init) (pthread_mutex_t *,
-				 const pthread_mutexattr_t *);
-  int (*ptr_pthread_mutex_lock) (pthread_mutex_t *);
-  int (*ptr_pthread_mutex_trylock) (pthread_mutex_t *);
-  int (*ptr_pthread_mutex_unlock) (pthread_mutex_t *);
-  int (*ptr___pthread_setcancelstate) (int, int *);
-  int (*ptr_pthread_setcanceltype) (int, int *);
   struct __pthread_cancelation_handler **(*ptr___pthread_get_cleanup_stack) (void);
   int (*ptr_pthread_once) (pthread_once_t *, void (*) (void));
-  int (*ptr_pthread_rwlock_rdlock) (pthread_rwlock_t *);
-  int (*ptr_pthread_rwlock_wrlock) (pthread_rwlock_t *);
-  int (*ptr_pthread_rwlock_unlock) (pthread_rwlock_t *);
   int (*ptr___pthread_key_create) (pthread_key_t *, void (*) (void *));
   void *(*ptr___pthread_getspecific) (pthread_key_t);
   int (*ptr___pthread_setspecific) (pthread_key_t, const void *);

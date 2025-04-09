@@ -166,6 +166,8 @@ libnldbl-calls = \
   obstack_vprintf \
   obstack_vprintf_chk \
   pow \
+  pown \
+  powr \
   printf \
   printf_chk \
   printf_fp \
@@ -180,6 +182,7 @@ libnldbl-calls = \
   rint \
   round \
   roundeven \
+  rsqrt \
   scalb \
   scalbln \
   scalbn \
@@ -374,11 +377,14 @@ CFLAGS-nldbl-nexttoward.c = -fno-builtin-nexttoward -fno-builtin-nexttowardl
 CFLAGS-nldbl-nexttowardf.c = -fno-builtin-nexttowardf
 CFLAGS-nldbl-nextup.c = -fno-builtin-nextupl
 CFLAGS-nldbl-pow.c = -fno-builtin-powl
+CFLAGS-nldbl-pown.c = -fno-builtin-pownl
+CFLAGS-nldbl-powr.c = -fno-builtin-powrl
 CFLAGS-nldbl-remainder.c = -fno-builtin-remainderl -fno-builtin-dreml
 CFLAGS-nldbl-remquo.c = -fno-builtin-remquol
 CFLAGS-nldbl-rint.c = -fno-builtin-rintl
 CFLAGS-nldbl-round.c = -fno-builtin-roundl
 CFLAGS-nldbl-roundeven.c = -fno-builtin-roundevenl
+CFLAGS-nldbl-rsqrt.c = -fno-builtin-rsqrtl
 CFLAGS-nldbl-scalb.c = -fno-builtin-scalbl
 CFLAGS-nldbl-scalbln.c = -fno-builtin-scalblnl
 CFLAGS-nldbl-scalbn.c = -fno-builtin-scalbnl
@@ -447,6 +453,59 @@ CFLAGS-tst-nldbl-errorfptr.c += -mlong-double-64
 endif
 
 ifeq ($(subdir), stdio-common)
+# We already have the long double conversion defined with our common rules
+# for the IEEE binary128 format, so define these special rules to build
+# and run extra executables for the IEEE binary64 format, reusing the same
+# sources.
+define tst-scanf-format-64-tests
+test-srcs += \
+  tst-scanf-format-$(1)-ldouble-64 \
+  # test-srcs
+
+$$(objpfx)tst-scanf-format-$(1)-ldouble-64.o: \
+	tst-scanf-format-$(1)-ldouble.c $$(before-compile)
+	$$(compile-command.c)
+$$(objpfx)tst-scanf-format-$(1)-ldouble-64: $$(libm)
+endef
+$(foreach p,$(xscanf-funcs), \
+  $(eval $(call tst-scanf-format-64-tests,$(p))))
+
+# Use the IEEE binary64 format for long double scanf format tests.
+$(foreach suf,$(all-object-suffixes), \
+	  $(foreach p,$(xscanf-funcs), \
+		    $(objpfx)tst-scanf-format-$(p)-ldouble-64$(suf))): \
+  sysdep-CFLAGS += -mlong-double-64
+
+ifeq ($(run-built-tests),yes)
+define tst-scanf-format-64-rule
+tests-special += \
+  $$(objpfx)tst-scanf-format-$(1)-ldouble-64-$(2).out \
+  # tests-special
+
+$$(objpfx)tst-scanf-format-$(1)-ldouble-64-$(2).out: \
+	../sysdeps/ieee754/ldbl-opt/tst-scanf-format-ldouble-$(2).input \
+	$$(objpfx)tst-scanf-format-$(1)-ldouble-64
+	$$(make-tst-scanf-format-out) > $$@ < $$<; \
+	$$(evaluate-test)
+
+ifeq (yes,$(build-shared))
+ifneq ($(PERL),no)
+tests-special += \
+  $$(objpfx)tst-scanf-format-$(1)-ldouble-64-$(2)-mem.out \
+  # tests-special
+
+generated += \
+  $$(objpfx)tst-scanf-format-$(1)-ldouble-64-$(2)-mem.out \
+  $$(objpfx)tst-scanf-format-$(1)-ldouble-64-$(2).mtrace \
+  # generated
+endif
+endif
+endef
+$(foreach f,$(fmts-xscanf-real), \
+  $(foreach p,$(xscanf-funcs), \
+    $(eval $(call tst-scanf-format-64-rule,$(p),$(f)))))
+endif # $(run-built-tests) == yes
+
 tests += \
   tst-nldbl-scanf-binary-c11 \
   tst-nldbl-scanf-binary-c23 \
@@ -467,7 +526,7 @@ CFLAGS-tst-nldbl-scanf-binary-gnu11.c += -mlong-double-64 -std=gnu11 \
 CFLAGS-tst-nldbl-scanf-binary-gnu89.c += -mlong-double-64 -std=gnu89 \
 					 -DOBJPFX=\"$(objpfx)\"
 
-endif
+endif # $(subdir) == stdio-common
 
 ifeq ($(subdir), wcsmbs)
 tests += \

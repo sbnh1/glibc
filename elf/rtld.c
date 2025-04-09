@@ -35,7 +35,6 @@
 #include <unsecvars.h>
 #include <dl-cache.h>
 #include <dl-osinfo.h>
-#include <dl-procinfo.h>
 #include <dl-prop.h>
 #include <dl-vdso.h>
 #include <dl-vdso-setup.h>
@@ -372,6 +371,7 @@ struct rtld_global_ro _rtld_global_ro attribute_relro =
     ._dl_error_free = _dl_error_free,
     ._dl_tls_get_addr_soft = _dl_tls_get_addr_soft,
     ._dl_libc_freeres = __rtld_libc_freeres,
+    ._dl_readonly_area = _dl_readonly_area,
   };
 /* If we would use strong_alias here the compiler would see a
    non-hidden definition.  This would undo the effect of the previous
@@ -1055,13 +1055,9 @@ static void
 rtld_chain_load (struct link_map *main_map, char *argv0)
 {
   /* The dynamic loader run against itself.  */
-  const char *rtld_soname
-    = ((const char *) D_PTR (&_dl_rtld_map, l_info[DT_STRTAB])
-       + _dl_rtld_map.l_info[DT_SONAME]->d_un.d_val);
-  if (main_map->l_info[DT_SONAME] != NULL
-      && strcmp (rtld_soname,
-		 ((const char *) D_PTR (main_map, l_info[DT_STRTAB])
-		  + main_map->l_info[DT_SONAME]->d_un.d_val)) == 0)
+  const char *rtld_soname = l_soname (&_dl_rtld_map);
+  if (l_soname (main_map) != NULL
+      && strcmp (rtld_soname, l_soname (main_map)) == 0)
     _dl_fatal_printf ("%s: loader cannot load itself\n", rtld_soname);
 
   /* With DT_NEEDED dependencies, the executable is dynamically
@@ -1626,26 +1622,26 @@ dl_main (const ElfW(Phdr) *phdr,
 
   bool has_interp = rtld_setup_main_map (main_map);
 
-  if ((__glibc_unlikely (GL(dl_stack_flags)) & PF_X)
-      && TUNABLE_GET (glibc, rtld, execstack, int32_t, NULL) == 0)
-    _dl_fatal_printf ("Fatal glibc error: executable stack is not allowed\n");
+  /* Handle this after PT_GNU_STACK parse, because it updates dl_stack_flags
+     if required.  */
+  _dl_handle_execstack_tunable ();
 
   /* If the current libname is different from the SONAME, add the
      latter as well.  */
-  if (_dl_rtld_map.l_info[DT_SONAME] != NULL
-      && strcmp (_dl_rtld_map.l_libname->name,
-		 (const char *) D_PTR (&_dl_rtld_map, l_info[DT_STRTAB])
-		 + _dl_rtld_map.l_info[DT_SONAME]->d_un.d_val) != 0)
-    {
-      static struct libname_list newname;
-      newname.name = ((char *) D_PTR (&_dl_rtld_map, l_info[DT_STRTAB])
-		      + _dl_rtld_map.l_info[DT_SONAME]->d_un.d_ptr);
-      newname.next = NULL;
-      newname.dont_free = 1;
+  {
+    const char *soname = l_soname (&_dl_rtld_map);
+    if (soname != NULL
+	&& strcmp (_dl_rtld_map.l_libname->name, soname) != 0)
+      {
+	static struct libname_list newname;
+	newname.name = soname;
+	newname.next = NULL;
+	newname.dont_free = 1;
 
-      assert (_dl_rtld_map.l_libname->next == NULL);
-      _dl_rtld_map.l_libname->next = &newname;
-    }
+	assert (_dl_rtld_map.l_libname->next == NULL);
+	_dl_rtld_map.l_libname->next = &newname;
+      }
+  }
   /* The ld.so must be relocated since otherwise loading audit modules
      will fail since they reuse the very same ld.so.  */
   assert (_dl_rtld_map.l_relocated);
@@ -1658,10 +1654,8 @@ dl_main (const ElfW(Phdr) *phdr,
       /* If the main map is libc.so, update the base namespace to
 	 refer to this map.  If libc.so is loaded later, this happens
 	 in _dl_map_object_from_fd.  */
-      if (main_map->l_info[DT_SONAME] != NULL
-	  && (strcmp (((const char *) D_PTR (main_map, l_info[DT_STRTAB])
-		      + main_map->l_info[DT_SONAME]->d_un.d_val), LIBC_SO)
-	      == 0))
+      if (l_soname (main_map) != NULL
+	  && strcmp (l_soname (main_map), LIBC_SO) == 0)
 	GL(dl_ns)[LM_ID_BASE].libc_map = main_map;
 
       /* Set up our cache of pointers into the hash table.  */

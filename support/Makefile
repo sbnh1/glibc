@@ -281,6 +281,11 @@ CFLAGS-temp_file.c += -D_FILE_OFFSET_BITS=64 -D_TIME_BITS=64
 
 ifeq (,$(CXX))
 LINKS_DSO_PROGRAM = links-dso-program-c
+LDLIBS-links-dso-program-c = -lgcc
+ifeq ($(have-libgcc_s),yes)
+CFLAGS-links-dso-program-c.c += -fexceptions
+LDLIBS-links-dso-program-c += -lgcc_s $(libunwind)
+endif
 else
 LINKS_DSO_PROGRAM = links-dso-program
 LDLIBS-links-dso-program = -lstdc++ -lgcc -lgcc_s $(libunwind)
@@ -325,6 +330,7 @@ tests = \
   README-testing \
   tst-support-namespace \
   tst-support-open-dev-null-range \
+  tst-support-openpty \
   tst-support-process_state \
   tst-support_blob_repeat \
   tst-support_capture_subprocess \
@@ -345,6 +351,10 @@ tests = \
   tst-xreadlink \
   tst-xsigstack \
   # tests
+
+tests-container = \
+  tst-support-openpty-c \
+  # tests-container
 
 ifeq ($(run-built-tests),yes)
 tests-special = \

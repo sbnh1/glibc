@@ -43,7 +43,6 @@
 
 #include <entry.h>
 #include <dl-machine.h>
-#include <dl-procinfo.h>
 
 #include <dl-tunables.h>
 #include <not-errno.h>
@@ -267,7 +266,7 @@ open_file (const char *file_name, int flags,
 	   mach_port_t *port, struct stat64 *stat)
 {
   enum retry_type doretry;
-  char retryname[1024];		/* XXX string_t LOSES! */
+  string_t retryname;
   file_t startdir;
   error_t err;
 
