@@ -1,0 +1,12 @@
+# Maximal error of functions:
+Function: "asinpi":
+double: 0
+
+Function: "asinpi_downward":
+double: 0
+
+Function: "asinpi_towardzero":
+double: 0
+
+Function: "asinpi_upward":
+double: 0
