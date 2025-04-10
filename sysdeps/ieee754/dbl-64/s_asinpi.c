@@ -37,6 +37,7 @@ SOFTWARE.
 #include <fenv.h>
 #include <libm-alias-double.h>
 
+#define CORE_MATH_SUPPORT_ERRNO
 #define CORE_MATH_CHECK_INEXACT
 
 #ifdef __x86_64__
