@@ -34,9 +34,11 @@ SOFTWARE.
 #include <stdint.h>
 #include <math.h>
 #include <errno.h>
+#include <fenv.h>
 #include <libm-alias-double.h>
 
 #define CORE_MATH_SUPPORT_ERRNO
+#define CORE_MATH_CHECK_INEXACT
 
 // Warning: clang also defines __GNUC__
 #if defined(__GNUC__) && !defined(__clang__)
@@ -1097,6 +1099,9 @@ __acospi (double x)
     v.i[LOW]=0;
 #ifdef CORE_MATH_SUPPORT_ERRNO
     errno = EDOM;
+#endif
+#ifdef CORE_MATH_CHECK_INEXACT
+  feraiseexcept(FE_INEXACT);
 #endif
     return u.x/v.x;
   }
