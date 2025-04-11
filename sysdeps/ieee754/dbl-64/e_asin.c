@@ -25,6 +25,9 @@
 /*               sincos.tbl  asincos.tbl  powtwo.tbl root.tbl     */
 /*                                                                */
 /******************************************************************/
+
+/*  acos integration based on commit e9ca2912   */
+
 #include "endian.h"
 #include "mydefs.h"
 #include "asincos.tbl"
