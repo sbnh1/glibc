@@ -1,0 +1,12 @@
+# Maximal error of functions:
+Function: "atan2pi":
+double: 0
+
+Function: "atan2pi_downward":
+double: 0
+
+Function: "atan2pi_towardzero":
+double: 0
+
+Function: "atan2pi_upward":
+double: 0
