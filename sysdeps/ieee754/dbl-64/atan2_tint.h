@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/* Based on commit e25293b0 */
+
 #include <stdlib.h>
 #include <inttypes.h>
 #if defined(__x86_64__)
