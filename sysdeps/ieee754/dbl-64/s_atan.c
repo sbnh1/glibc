@@ -27,6 +27,8 @@
 /*                                                                      */
 /************************************************************************/
 
+/* Based on commit e45c4ce2 */
+
 #include <dla.h>
 #include "mydefs.h"
 #include "uatan.tbl"
