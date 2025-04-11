@@ -31,6 +31,8 @@ SOFTWARE.
    to maintain this code if acos is fixed or improved.
 */
 
+/* Based on commit 03c15350 */
+
 #include <stdint.h>
 #include <math.h>
 #include <errno.h>
