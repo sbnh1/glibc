@@ -31,6 +31,8 @@ SOFTWARE.
    to ease maintaining that code if/when asin.c is fixed or improved.
 */
 
+/* Based on commit 240370b1 */
+
 #include <stdint.h>
 #include <errno.h>
 #include <math.h>
