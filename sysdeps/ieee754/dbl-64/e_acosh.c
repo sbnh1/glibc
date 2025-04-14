@@ -25,8 +25,6 @@
 
 /* based on commit 7a28d0c6 */
 
-#include <math.h>
-#include <math_private.h>
 #include <libm-alias-finite.h>
 #include <stdint.h>
 #include <errno.h>
@@ -37,6 +35,8 @@
 #endif
 
 #pragma STDC FENV_ACCESS ON
+
+#define CORE_MATH_SUPPORT_ERRNO
 
 typedef uint64_t u64;
 typedef union {double f; u64 u;} b64u64_u;
