@@ -49,6 +49,8 @@
 
 #pragma STDC FENV_ACCESS ON
 
+#define CORE_MATH_SUPPORT_ERRNO
+
 /* __builtin_roundeven was introduced in gcc 10:
    https://gcc.gnu.org/gcc-10/changes.html,
    and in clang 17 */
