@@ -54,6 +54,8 @@
 
 #pragma STDC FENV_ACCESS ON
 
+#define CORE_MATH_SUPPORT_ERRNO
+
 // This code emulates the _mm_getcsr SSE intrinsic by reading the FPCR register.
 // fegetexceptflag accesses the FPSR register, which seems to be much slower
 // than accessing FPCR, so it should be avoided if possible.
