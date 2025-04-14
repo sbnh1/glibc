@@ -29,24 +29,10 @@
 
 /* Based on commit : d9a6dffd */
 
-#include <dla.h>
-#include "mydefs.h"
-#include "uatan.tbl"
-#include "atnat2.h"
-#include <fenv.h>
-#include <float.h>
-#include <math.h>
-#include <math-barriers.h>
-#include <math_private.h>
-#include <fenv_private.h>
-#include <libm-alias-finite.h>
-
 #include <fenv.h>
 #include <stdio.h> // needed in case of correct rounding failure
 #include <stdint.h>
 #include <errno.h>
-
-#define CORE_MATH_SUPPORT_ERRNO
 
 // Warning: clang also defines __GNUC__
 #if defined(__GNUC__) && !defined(__clang__)
@@ -54,6 +40,8 @@
 #endif
 
 #pragma STDC FENV_ACCESS ON
+
+#define CORE_MATH_SUPPORT_ERRNO
 
 typedef union { double f; uint64_t u; } d64u64;
 
