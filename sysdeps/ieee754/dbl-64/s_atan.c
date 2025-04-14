@@ -29,15 +29,6 @@
 
 /* Based on commit e45c4ce2 */
 
-#include <dla.h>
-#include "mydefs.h"
-#include "uatan.tbl"
-#include <fenv.h>
-#include <float.h>
-#include <libm-alias-double.h>
-#include <math.h>
-#include <fenv_private.h>
-#include <math-underflow.h>
 #include <stdint.h>
 #include <errno.h>
 
@@ -47,6 +38,8 @@
 #endif
 
 #pragma STDC FENV_ACCESS ON
+
+#define CORE_MATH_SUPPORT_ERRNO
 
 typedef union {double f; uint64_t u;} b64u64_u;
 typedef uint64_t u64;
