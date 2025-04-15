@@ -21,7 +21,7 @@
  *		 := sign(x)*log1p(|x| + x^2/(1 + sqrt(1+x^2)))
  */
 
-/* Based on commit 7a28d0c6 */
+/* Based on commit fde815f8 */
 
 #include <libm-alias-double.h>
 #include <stdint.h>
