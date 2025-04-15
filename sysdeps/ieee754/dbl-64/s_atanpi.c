@@ -31,7 +31,7 @@ SOFTWARE.
    to ease maintaining that code if/when atan.c is fixed or improved.
 */
 
-/* Based on commit 8e2cbebc */
+/* Based on commit b5db8b47 */
 
 #include <stdint.h>
 #include <math.h> // needed for atan()
