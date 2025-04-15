@@ -23,7 +23,7 @@
  *	acosh(NaN) is NaN without signal.
  */
 
-/* based on commit 7a28d0c6 */
+/* based on commit 6d87ca23 */
 
 #include <libm-alias-finite.h>
 #include <stdint.h>
