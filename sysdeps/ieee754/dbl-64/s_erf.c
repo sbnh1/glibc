@@ -111,6 +111,7 @@ static char rcsid[] = "$NetBSD: s_erf.c,v 1.8 1995/05/10 20:47:05 jtc Exp $";
  *	   	erfc/erf(NaN) is NaN
  */
 
+ /* Based on commit 384ed01d */
 
 #include <errno.h>
 #include <float.h>
