@@ -30,6 +30,8 @@
  *	only cosh(0)=1 is exact for finite x.
  */
 
+ /* Based on commit 247ddae1 */
+
 #include <stdio.h>
 #include <libm-alias-finite.h>
 #include <stdint.h>
@@ -265,10 +267,15 @@ __ieee754_cosh (double x)
     return as_cosh_zero(x);
   }
 
-  // treat NaN/Inf apart to avoid a spurious invalid exception
-  if (__builtin_expect (aix >= 0x7ff0000000000000ull, 0)) {
+  // treat large values apart to avoid a spurious invalid exception
+  if (__builtin_expect (aix > 0x408633ce8fb9f87dull, 0)) {
+    // |x| > 0x1.633ce8fb9f87dp+9
     if(aix>0x7ff0000000000000ull) return x + x; // nan
-    if(aix==0x7ff0000000000000ull) return __builtin_fabs(x);
+    if(aix==0x7ff0000000000000ull) return __builtin_fabs(x); // inf
+#ifdef CORE_MATH_SUPPORT_ERRNO
+    errno = ERANGE;
+#endif
+    return 0x1p1023 * 2.0;
   }
 
   int64_t il = ((uint64_t)jt.u<<14)>>40, jl = -il;
@@ -286,12 +293,6 @@ __ieee754_cosh (double x)
   double rh, rl;
   if(__builtin_expect(aix>0x4014000000000000ull, 0)){ // |x| > 5
     if(__builtin_expect(aix>0x40425e4f7b2737faull, 0)){ // |x| >~ 36.736801
-      if(__builtin_expect(aix>0x408633ce8fb9f87dull, 0)){ // |x| >~ 710.47586
-#ifdef CORE_MATH_SUPPORT_ERRNO
-        errno = ERANGE;
-#endif
-	return 0x1p1023*2.0;
-      }
       sp.u = (1021 + ie)<<52;
       rh = th;
       rl = tl + th*pp;
