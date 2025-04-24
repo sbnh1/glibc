@@ -386,15 +386,13 @@ atan2_accurate (double y, double x)
   }
   res = tint_tod (z, err, y, x);
  end:
-  if (!underflow)
-    fesetexceptflag (&flag, FE_UNDERFLOW); // restore underflow flag
 #ifdef CORE_MATH_SUPPORT_ERRNO
   else
     errno = ERANGE; // underflow
 #endif
   fesetexceptflag (&flag, FE_OVERFLOW); // restore overflow flag
   feraiseexcept (FE_INEXACT); // always inexact
-  if(!fetestexcept (FE_UNDERFLOW))
+  if (!underflow)
     fesetexceptflag (&flag, FE_UNDERFLOW);
   return res;
 }
