@@ -34,6 +34,8 @@
 
    [1] https://arxiv.org/pdf/1904.09481.pdf  */
 
+/* Based on commit f6442f2b */
+
 #include <math-svid-compat.h>
 #include <libm-alias-finite.h>
 #include <libm-alias-double.h>
