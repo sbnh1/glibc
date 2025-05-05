@@ -47,6 +47,8 @@
 
 #pragma STDC FENV_ACCESS ON
 
+#define CORE_MATH_SUPPORT_ERRNO
+
 #ifndef POW_ITERATION
 #define POW_ITERATION 15
 #endif
