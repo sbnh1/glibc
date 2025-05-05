@@ -27,7 +27,7 @@
 /*                                                                      */
 /************************************************************************/
 
-/* Based on commit : d9a6dffd */
+/* Based on commit : 2e707dff */
 
 #include <fenv.h>
 #include <stdio.h> // needed in case of correct rounding failure
@@ -201,11 +201,10 @@ static const tint_t Q[30] = {
 static double __attribute__((noinline))
 atan2_accurate (double y, double x)
 {
-  fexcept_t flag;
   fenv_t env;
-  fegetexceptflag (&flag, FE_ALL_EXCEPT); // save flags
   feholdexcept(&env);
   int underflow;
+  int overflow = fetestexcept (FE_OVERFLOW);
   double res;
   /* First check when t=y/x is small and exact and x > 0, since for
      |t| <= 0x1.d12ed0af1a27fp-27, atan(t) rounds to t (to nearest). */
@@ -384,15 +383,15 @@ atan2_accurate (double y, double x)
   }
   res = tint_tod (z, err, y, x);
  end:
-  feupdateenv(&env);
-  fesetexceptflag (&flag, FE_OVERFLOW); // restore overflow flag
-  feraiseexcept (FE_INEXACT); // always inexact
+  if (!overflow)
+    feclearexcept (FE_OVERFLOW);
   if (!underflow)
-    fesetexceptflag (&flag, FE_UNDERFLOW); // restore underflow flag
+    feclearexcept (FE_UNDERFLOW);
 #ifdef CORE_MATH_SUPPORT_ERRNO
   else
     errno = ERANGE; // underflow
 #endif
+  feupdateenv(&env);
   return res;
 }
 
