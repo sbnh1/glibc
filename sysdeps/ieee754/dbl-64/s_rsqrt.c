@@ -24,6 +24,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/* Based on commit 0eb09c9c */
+
 
 #include <errno.h>
 #include <fenv.h>
