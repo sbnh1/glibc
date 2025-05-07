@@ -16,6 +16,8 @@
    License along with the GNU C Library; if not, see
    <https://www.gnu.org/licenses/>.  */
 
+/* Based on commit  a1719757 */
+
 
 #include <math-svid-compat.h>
 #include <libm-alias-finite.h>
