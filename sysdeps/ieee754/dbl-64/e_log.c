@@ -648,6 +648,9 @@ __log (double x)
   int e = (v.u >> 52) - 0x3ff;
   if (e >= 0x400 || e == -0x3ff) /* x <= 0 or NaN/Inf or subnormal */
   {
+    static const d64u64 minf = {.u = 0xffful << 52};
+    if (e == 0x400 || (e == 0xc00 && x != minf.f)) /* +Inf or NaN */
+      return x + x;
     if (x <= 0.0)
     {
       /* f(x<0) is NaN, f(+/-0) is -Inf and raises DivByZero */
@@ -664,8 +667,6 @@ __log (double x)
         return 1.0 / -0.0;
       }
     }
-    if (e == 0x400 || e == 0xc00) /* +Inf or NaN */
-      return x + x;
     if (e == -0x3ff) /* subnormal */
     {
       v.f *= 0x1p52;
