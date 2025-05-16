@@ -25,6 +25,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/* Based on commit 26177bce */
+
 // Warning: clang also defines __GNUC__
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
