@@ -18,6 +18,9 @@
 
 /* stdio.h and stdlib.h are needed in case the rounding test of the accurate
 step fails, to print the corresponding input and exit. */
+
+/* Based on commit d866184b */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -34,6 +37,7 @@ step fails, to print the corresponding input and exit. */
 #pragma STDC FENV_ACCESS ON
 
 #define CORE_MATH_CHECK_INEXACT
+#define CORE_MATH_SUPPORT_ERRNO
 
 /******************** code copied from dint.h and pow.[ch] *******************/
 
@@ -2193,6 +2197,12 @@ __sincos (double x, double *s, double *c)
 
   if (__builtin_expect (e == 0x7ff, 0)) /* NaN, +Inf and -Inf. */
     {
+#ifdef CORE_MATH_SUPPORT_ERRNO
+      if ((t.u << 1) == 0x7ffull<<53) // Inf
+        errno = EDOM;
+#endif
+      if ((t.u << 1) != (0x7ff8ull<<49))
+        feraiseexcept (FE_INVALID);
       t.u = ~0ull;
       *s = t.f;
       *c = t.f;
