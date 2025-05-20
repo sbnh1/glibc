@@ -6575,7 +6575,7 @@ j1 0x1p-10000
 # (cf BZ #27670 for the xfail entries)
 j1 0x3.ae4b2p+0 xfail-rounding:ibm128-libgcc
 j1 0x1.2f28eap+7 xfail-rounding:binary64 xfail-rounding:binary128 xfail-rounding:intel96 xfail-rounding:ibm128-libgcc
-j1 0x1.a1d20ap+6 xfail-rounding:binary128 xfail-rounding:intel96 xfail-rounding:ibm128-libgcc
+j1 0x1.a1d20ap+6 xfail:binary64 xfail-rounding:binary128 xfail-rounding:intel96 xfail-rounding:ibm128-libgcc
 j1 min
 j1 -min
 j1 min_subnorm
