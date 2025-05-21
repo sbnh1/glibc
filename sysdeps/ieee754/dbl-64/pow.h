@@ -25,8 +25,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef CR_POW_H
-#define CR_POW_H
+#ifndef __POW_H
+#define __POW_H
 
 #include <stdint.h>
 #include <assert.h>
@@ -58,7 +58,7 @@ static inline void fast_extract (int64_t *e, uint64_t *m, double x) {
 #include "pow_dint.h"
 #include "pow_qint.h"
 
-double cr_pow(double x, double y);
+double __pow(double x, double y);
 
 /* __builtin_roundeven was introduced in gcc 10:
    https://gcc.gnu.org/gcc-10/changes.html,
@@ -100,7 +100,7 @@ roundeven_finite (double x)
 */
 
 // When x is a NaN, returns 1 if x is an sNaN and 0 if it is a qNaN
-static inline int issignaling(double x) {
+static inline int is_signaling(double x) {
   f64_u _x = {.f = x};
 
   return !(_x.u & (1ull << 51));

@@ -16,14 +16,11 @@
    License along with the GNU C Library; if not, see
    <https://www.gnu.org/licenses/>.  */
 
-#include <math.h>
-#include <stdint.h>
-#include <math-barriers.h>
-#include <math-narrow-eval.h>
+
 #include <math-svid-compat.h>
 #include <libm-alias-finite.h>
 #include <libm-alias-double.h>
-#include "math_config.h"
+
 
 #include "pow.h"
 #include <stdio.h>
@@ -48,6 +45,7 @@
 #pragma STDC FENV_ACCESS ON
 
 #define CORE_MATH_SUPPORT_ERRNO
+#define CORE_MATH_POW
 
 #ifndef POW_ITERATION
 #define POW_ITERATION 15
@@ -1509,7 +1507,7 @@ __pow (double x, double y)
 
     if (__builtin_isnan(x)) {
       // IEEE 754-2019: pow(x,+/-0) = 1 if x is not a signaling NaN
-      if (y == 0.0 && !issignaling(x))
+      if (y == 0.0 && !is_signaling(x))
         return 1.0;
 
       /* pow(sNaN, y) = qNaN. This is implicit in IEEE 754-2019,
@@ -1534,7 +1532,7 @@ __pow (double x, double y)
 
     if (__builtin_isnan(y)) {
       // IEEE 754-2019: pow(1,y) = 1 for any y (even a quiet NaN)
-      if (x == 1.0 && !issignaling(y))
+      if (x == 1.0 && !is_signaling(y))
         return 1.0;
 
       // pow(x, sNaN) = qNaN (see above)
