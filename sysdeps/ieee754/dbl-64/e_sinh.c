@@ -278,7 +278,7 @@ __ieee754_sinh (double x)
          for RNDU, sinh(2^-1022-2^-1074) would round to 2^-1022-2^-1075
          with unbounded exponent range */
 #ifdef CORE_MATH_SUPPORT_ERRNO
-      if (x != 0 && __builtin_fabs (x) < 0x1p-1022)
+      if (x != 0 && __builtin_fabs (x) <= 0x1p-1022)
         errno = ERANGE; // underflow
 #endif
       return __builtin_fma(x,0x1p-55,x);
