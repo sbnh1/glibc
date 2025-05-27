@@ -10,6 +10,8 @@
  * ====================================================
  */
 
+/* Based on commit 2f0a4b87 */
+
 #include <stdint.h>
 #include <errno.h>
 #if defined(__x86_64__)
@@ -186,7 +188,7 @@ __ieee754_sinh (double x)
     higher than double precision. For 36.736801<|x|<710.47586
     exp(-|x|) becomes too small and only exp(|x|) is calculated.
    */
-   static const double t0[][2] = {
+  static const double t0[][2] = {
     {0x0p+0, 0x1p+0}, {-0x1.19083535b085ep-56, 0x1.02c9a3e778061p+0},
     {0x1.d73e2a475b466p-55, 0x1.059b0d3158574p+0}, {0x1.186be4bb285p-57, 0x1.0874518759bc8p+0},
     {0x1.8a62e4adc610ap-54, 0x1.0b5586cf9890fp+0}, {0x1.03a1727c57b52p-59, 0x1.0e3ec32d3d1a2p+0},
@@ -278,7 +280,7 @@ __ieee754_sinh (double x)
          for RNDU, sinh(2^-1022-2^-1074) would round to 2^-1022-2^-1075
          with unbounded exponent range */
 #ifdef CORE_MATH_SUPPORT_ERRNO
-      if (x != 0 && __builtin_fabs (x) <= 0x1p-1022)
+      if (x != 0 && __builtin_fabs (x) < 0x1p-1022)
         errno = ERANGE; // underflow
 #endif
       return __builtin_fma(x,0x1p-55,x);
@@ -290,7 +292,14 @@ __ieee754_sinh (double x)
     if(lb == ub) return lb;
     return as_sinh_zero(x);
   }
-  if(aix==0x7ff0000000000000ull) return x; // inf
+  if(__builtin_expect(aix>0x408633ce8fb9f87dull, 0)){ // |x| >~ 710.47586
+    if(aix>0x7ff0000000000000ull) return x + x; // nan
+    if(aix==0x7ff0000000000000ull) return x; // inf
+#ifdef CORE_MATH_SUPPORT_ERRNO
+  errno = ERANGE;
+#endif
+	return __builtin_copysign(0x1p1023, x)*2.0;
+      }
   int64_t il = ((u64)jt.u<<14)>>40, jl = -il;
   int64_t i1 = il&0x3f, i0 = (il>>6)&0x3f, ie = il>>12;
   int64_t j1 = jl&0x3f, j0 = (jl>>6)&0x3f, je = jl>>12;
@@ -306,13 +315,6 @@ __ieee754_sinh (double x)
   double rh, rl;
   if(__builtin_expect(aix>0x4014000000000000ull, 0)){ // |x| > 5
     if(__builtin_expect(aix>0x40425e4f7b2737faull, 0)){ // |x| >~ 36.736801
-      if(__builtin_expect(aix>0x408633ce8fb9f87dull, 0)){ // |x| >~ 710.47586
-        if(aix>0x7ff0000000000000ull) return x + x; // nan
-#ifdef CORE_MATH_SUPPORT_ERRNO
-  errno = ERANGE;
-#endif
-	return __builtin_copysign(0x1p1023, x)*2.0;
-      }
       sp.u = (1021 + ie)<<52;
       rh = th;
       rl = tl + th*pp;
