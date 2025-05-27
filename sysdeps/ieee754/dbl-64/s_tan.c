@@ -27,7 +27,7 @@
 /*                                                                   */
 /*********************************************************************/
 
-/* Based on commit 329b1d80 */
+/* Based on commit f1b5b300 */
 
 /* stdio.h and stdlib.h are needed in case the rounding test of the accurate
 step fails, to print the corresponding input and exit. */
@@ -2262,7 +2262,6 @@ __tan (double x)
 #ifdef CORE_MATH_SUPPORT_ERRNO
     if ((t.u << 1) == 0x7ffull<<53){ // Inf
       errno = EDOM;
-      return 0.0 / 0.0;
     }
 #endif
     if ((t.u << 1) != 0x7ff8ull<<49){
