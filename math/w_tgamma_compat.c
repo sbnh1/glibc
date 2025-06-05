@@ -15,7 +15,7 @@
  * depending on the library mode.
  */
 
-/* Based on commit 1d4dfd6c */
+/* Based on commit 0f185e23 */
 
 #include <stdint.h>
 #include <errno.h>
@@ -639,8 +639,10 @@ __tgamma(double x)
         return r;
       }
       r = 1/x;
-	  if (x == 0){
+	if (x == 0){
+#ifdef CORE_MATH_SUPPORT_ERRNO
 		errno = ERANGE; // pole error
+#endif
         return r;
 	}
       // the following raises the inexact flag in case x=2^k
