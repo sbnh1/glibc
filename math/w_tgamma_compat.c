@@ -15,10 +15,7 @@
  * depending on the library mode.
  */
 
-
-
-
-#include <libm-alias-double.h>
+/* Based on commit 1d4dfd6c */
 
 #include <stdint.h>
 #include <errno.h>
@@ -27,6 +24,7 @@
 #else
 #include <fenv.h>
 #endif
+#include <libm-alias-double.h>
 
 // Warning: clang also defines __GNUC__
 #if defined(__GNUC__) && !defined(__clang__)
@@ -641,6 +639,10 @@ __tgamma(double x)
         return r;
       }
       r = 1/x;
+	  if (x == 0){
+		errno = ERANGE; // pole error
+        return r;
+	}
       // the following raises the inexact flag in case x=2^k
       if (__builtin_expect(__builtin_fma (r, x, -1.0) == 0, 0)) r -= 0.5;
       /* gamma(x) ~ 1/x - euler_gamma near x=0, thus we should raise the
