@@ -19,7 +19,7 @@
 /* stdio.h and stdlib.h are needed in case the rounding test of the accurate
 step fails, to print the corresponding input and exit. */
 
-/* Based on commit d866184b */
+/* Based on commit a3c8d25b */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2220,9 +2220,10 @@ __sincos (double x, double *s, double *c)
     // for x=-0, fma (x, -0x1p-54, x) returns +0
     *s = (x == 0) ? x : __builtin_fma (x, -0x1p-54, x);
     *c = (x == 0) ? 1.0 : 1.0 - 0x1p-54;
-#ifdef CORE_MATH_CHECK_INEXACT
-    if (x != 0 && __builtin_fabs (*s) < 0x1p-1022)
-      errno = ERANGE;
+
+#ifdef CORE_MATH_SUPPORT_ERRNO
+    if (x != 0 && (__builtin_fabs (x) < 0x1p-1022 || __builtin_fabs (*s) < 0x1p-1022))
+      errno = ERANGE; // underflow
 #endif
     return;
   }
