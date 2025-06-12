@@ -16,6 +16,8 @@
    License along with the GNU C Library; if not, see
    <https://www.gnu.org/licenses/>.  */
 
+/* Based on commit f786e13f */
+
 #include <stdint.h>
 #include <errno.h>
 #include <libm-alias-finite.h>
