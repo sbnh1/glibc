@@ -95,6 +95,18 @@ float: 0
 Function: "cbrt_upward":
 float: 0
 
+Function: "compound":
+float: 0
+
+Function: "compound_downward":
+float: 0
+
+Function: "compound_towardzero":
+float: 0
+
+Function: "compound_upward":
+float: 0
+
 Function: "cosh":
 float: 0
 
