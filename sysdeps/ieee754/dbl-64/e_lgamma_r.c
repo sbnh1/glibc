@@ -76,13 +76,12 @@
  *		lgamma(-integer) = +-inf
  *
  */
-#include <stdio.h>
+
+/* Based on commit 285d3946 */
+
 #include <stdint.h>
 #include <errno.h>
 #include <math.h> // for signgam
-#include <math-narrow-eval.h>
-#include <math_private.h>
-#include <libc-diag.h>
 #include <libm-alias-finite.h>
 
 // Warning: clang also defines __GNUC__
