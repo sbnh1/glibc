@@ -77,7 +77,7 @@
  *
  */
 
-/* Based on commit 285d3946 */
+/* Based on commit 51125e89 */
 
 #include <stdint.h>
 #include <errno.h>
@@ -947,8 +947,7 @@ __ieee754_lgamma_r(double x, int *signgamp)
   double fx = __builtin_floor(x);
   if(__builtin_expect(fx==x, 0)){ /* x is integer */
     if(x <= 0.0) {
-		uint64_t sign = (t.u >> 63) & 1;
-		*signgamp = (sign == 1) ? -1 : 1;
+		*signgamp = 1 - 2*(t.u>>63);
 #ifdef CORE_MATH_SUPPORT_ERRNO
       errno = ERANGE;
 #endif
