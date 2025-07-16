@@ -16,6 +16,8 @@
    License along with the GNU C Library; if not, see
    <https://www.gnu.org/licenses/>.  */
 
+/* Based on commit 877189d2 */
+
 #include <stdint.h>
 #include <fenv.h>
 #include <libm-alias-ldouble.h>
