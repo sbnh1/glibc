@@ -27,6 +27,8 @@
 
    [1] https://arxiv.org/pdf/1904.09481.pdf  */
 
+/* Based on commit 35ebf52b */
+
 #include <stdint.h>
 #include <fenv.h>
 #include <errno.h>
@@ -44,8 +46,6 @@ typedef unsigned __int128 u128;
 #endif
 
 #pragma STDC FENV_ACCESS ON
-
-#define CORE_MATH_SUPPORT_ERRNO
 
 typedef union {long double f; struct {uint64_t m; uint16_t e;};} b80u80_t;
 
@@ -90,7 +90,7 @@ is_snan (b80u80_t s)
 long double
 __ieee754_hypotl (long double x, long double y)
 {
-  // save the inexact flag
+    // save the inexact flag
   fexcept_t flag;
   fegetexceptflag (&flag, FE_INEXACT);
 
@@ -125,39 +125,42 @@ __ieee754_hypotl (long double x, long double y)
       if (is_nan (sx) && is_nan (sy)) // x = y = qNaN
         return sx.f + sy.f;
       // now one is qNaN and the other is either Inf or a normal number
-      if (x_exp == 0x4000 && y_exp == 0x4000) // x=qNaN and y=Inf (or converse)
-        return 1.0L / 0.0L;
-      return sx.f + sy.f;
+      if (x_exp != 0x4000 || y_exp != 0x4000) // x or y is not qNaN/Inf
+        return sx.f + sy.f;
     }
-    // now neither x nor y is NaN, at least one is Inf
-    return 1.0L / 0.0L;
+    // now neither x nor y is sNaN, at least one is Inf
+    return (sx.m == 0x8000000000000000ull) ? sx.f * sx.f : sy.f * sy.f;
   }
 
+  uint64_t mx = sx.m, my = sy.m;
+
   if (__builtin_expect (y_exp == -0x3fff, 0)) { // y is 0 or subnormal
-    if (__builtin_expect (sy.m == 0, 0)) // y = 0
+    if (__builtin_expect (my == 0, 0)) // y = 0
     {
       /* hypot(±0, ±0) is +0 */
-      if (x_exp == -0x3fff && sx.m == 0)
+      if (x_exp == -0x3fff && mx == 0){
         return +0.0L;
+      }
       else // hypot(x,0) = |x|
       {
         sx.e &= 0x7fff; // clear sign bit
         return sx.f;    // |x|
       }
     }
+
     // normalize y
-    int k = __builtin_clzll (sy.m);
-    sy.m <<= k;
+    int k = __builtin_clzll (my);
+    my <<= k;
     y_exp -= k - 1;
     if (x_exp == -0x3fff) // x is subnormal too
     {
       k = __builtin_clzll (sx.m); // x cannot be 0
-      sx.m <<= k;
+      mx <<= k;
       x_exp -= k - 1;
     }
   }
 
-  // now x = sx.m * 2^(x_exp-63)
+  // now x = mx * 2^(x_exp-63) and y = my * 2^(y_exp-63)
 
   int d = x_exp - y_exp;
   /* assume without loss of generality x = m with 2^63 <= m < 2^64,
@@ -169,11 +172,11 @@ __ieee754_hypotl (long double x, long double y)
      If d < 32, this is always false since y = my/2^d with my >= 2^63,
      thus y^2 >= 2^126/2^62 = 2^64 > m+1/4.
   */
-  if (d >= 32) { // |y| < ulp(x) thus hypot(x,y) = |x| or nextabove(|x|)
+  if (d >= 32) { // hypot(x,y) = |x| or nextabove(|x|)
     double z = 1.0;
     if (d == 32) {
-      u128 yy = (u128) sy.m * (u128) sy.m;
-      uint64_t h = yy >> 64, l = yy, m = sx.m;
+      u128 yy = (u128) my * (u128) my;
+      uint64_t h = yy >> 64, l = yy, m = mx;
 #define ONE_FOURTH 0x4000000000000000ull
       /* The midpoint case l == ONE_FOURTH and m odd cannot happen,
          since if m + 1/4 = y^2 with y = k + 1/2, then y^2 = k^2 + k + 1/4
@@ -197,13 +200,15 @@ __ieee754_hypotl (long double x, long double y)
 #endif
       }
     }
+    if (sx.e == 0) // subnormal case, result is always inexact
+      feraiseexcept (FE_UNDERFLOW);
     return sx.f;
   }
 
   // now 0 <= d < 32
   int dd = d + d; // 0 <= dd < 64
-  u128 xx = (u128) sx.m * (u128) sx.m;
-  u128 yy = (u128) sy.m * (u128) sy.m;
+  u128 xx = (u128) mx * (u128) mx;
+  u128 yy = (u128) my * (u128) my;
   u128 hh = xx + (yy >> dd);
   u128 ll = (dd > 0) ? yy << (128 - dd) : 0;
   if (hh < xx) { // overflow
