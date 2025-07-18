@@ -1,0 +1,12 @@
+# Maximal error of functions:
+Function: "rsqrtl":
+double: 0
+
+Function: "rsqrtl_downward":
+double: 0
+
+Function: "rsqrtl_towardzero":
+double: 0
+
+Function: "rsqrtl_upward":
+double: 0
