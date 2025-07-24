@@ -29,6 +29,8 @@ SOFTWARE.
        Paul Zimmermann, https://inria.hal.science/hal-04480440, February 2024.
 */
 
+/* Based on commit 5c8bd9e1 */
+
 #define TRACE 0x8.000000000000001p-5L
 
 #include <stdint.h>
@@ -84,9 +86,16 @@ long double __rsqrtl (long double x){
 	}
       }
     } else { // NaN or Inf
-      if (v.e > 0x8000) return 0.0L / 0.0L; // x<0: rsqrt(x)=NaN
-      if (e == 0x7fff && !(v.m<<1)) return +0L;         // x=Inf
-      return x;                      // x=NaN
+      if (v.e > 0x8000 && !(v.e == 0xffff && v.m == 0xc000000000000000ul)){
+#ifdef CORE_MATH_SUPPORT_ERRNO
+	  errno = EDOM; // domain error
+#endif
+         return 0.0L / 0.0L; // x<0: rsqrt(x)=NaN
+      }
+      if (e == 0x7fff && !(v.m<<1)){
+         return +0L;         // x=Inf
+      }
+      return x+x;                      // x=+-NaN
     }
   }
   // rsqrt(x) is exact iff x = 2^(2k)
