@@ -29,7 +29,7 @@ SOFTWARE.
        Paul Zimmermann, https://inria.hal.science/hal-04480440, February 2024.
 */
 
-/* Based on commit 5c8bd9e1 */
+/* Based on commit d13607be */
 
 #define TRACE 0x8.000000000000001p-5L
 
@@ -63,7 +63,7 @@ typedef union {double f;uint64_t u;} b64u64_u;
 long double __rsqrtl (long double x){
   b96u96_u v = {.f = x};
   int e = v.e & 0x7fff;
-  // check NaN, Inf, 0 and normalize subnormals
+  // check NaN, Inf, 0, normalize subnormals and negative numbers
   if (__builtin_expect (v.e >= 0x7fff || v.e == 0, 0)){
     // case x subnormal or NaN or Inf
     if (e == 0) { // subnormal case
@@ -85,17 +85,17 @@ long double __rsqrtl (long double x){
 	  return 0.0L / 0.0L; // x<0: rsqrt(x)=NaN
 	}
       }
-    } else { // NaN or Inf
-      if (v.e > 0x8000 && !(v.e == 0xffff && v.m == 0xc000000000000000ul)){
+    } else { // NaN, Inf or negative normal
+      if (v.e > 0x8000 && !(v.e == 0xffff && v.m == 0xc000000000000000ul)){ // negative values except -Inf
 #ifdef CORE_MATH_SUPPORT_ERRNO
 	  errno = EDOM; // domain error
 #endif
          return 0.0L / 0.0L; // x<0: rsqrt(x)=NaN
       }
       if (e == 0x7fff && !(v.m<<1)){
-         return +0L;         // x=Inf
+         return +0L;         // x=+Inf
       }
-      return x+x;                      // x=+-NaN
+      return x+x;                      // x=+-NaN or -Inf
     }
   }
   // rsqrt(x) is exact iff x = 2^(2k)
