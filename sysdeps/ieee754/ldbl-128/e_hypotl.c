@@ -1,31 +1,30 @@
-/* Euclidean distance function.  Long Double/Binary128 version.
-   Copyright (C) 2021-2025 Free Software Foundation, Inc.
-   This file is part of the GNU C Library.
+/* Correctly-rounded Euclidean distance function (hypot) for the binary128 format.
 
-   The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public
-   License as published by the Free Software Foundation; either
-   version 2.1 of the License, or (at your option) any later version.
+Copyright (c) 2025 Alexei Sibidanov <sibid@uvic.ca>
 
-   The GNU C Library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
+This file is part of the CORE-MATH project
+(https://core-math.gitlabpages.inria.fr/).
 
-   You should have received a copy of the GNU Lesser General Public
-   License along with the GNU C Library; if not, see
-   <https://www.gnu.org/licenses/>.  */
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-/* This implementation is based on 'An Improved Algorithm for hypot(a,b)' by
-   Carlos F. Borges [1] using the MyHypot3 with the following changes:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-   - Handle qNaN and sNaN.
-   - Tune the 'widely varying operands' to avoid spurious underflow
-     due the multiplication and fix the return value for upwards
-     rounding mode.
-   - Handle required underflow exception for subnormal results.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
-   [1] https://arxiv.org/pdf/1904.09481.pdf  */
+/* Based on commit 32813f43 */
 
 #include <stdio.h>
 #include <errno.h>
@@ -152,6 +151,16 @@ static inline u128 sqrU(u128 _a, u128 *t){
   a11.b[1] = __builtin_addcl(a11.b[1], 0, c, &c);
   *t = a00.a;
   return a11.a;
+}
+
+// add two 128 bit numbers with overflow bit
+static inline u128 addUU(u64 *c, u128 _a, u128 _b){
+  b128u128_u a, b;
+  a.a = _a;
+  b.a = _b;
+  a.b[0] = __builtin_addcl(a.b[0], b.b[0],  0, c);
+  a.b[1] = __builtin_addcl(a.b[1], b.b[1], *c, c);
+  return a.a;
 }
 
 // get appoximate high part of unsigned 128x128 bit multiplication
@@ -351,8 +360,8 @@ __ieee754_hypotl(_Float128 x, _Float128 y)
   } else {
     b.a <<= 15; b.b[1] |= 1ull<<63;
     b128u128_u a2128 = {.a = sqrhU(a.a)}, b2 = {.a = sqrhU(b.a>>dn)};
-    a2128.a += b2.a;
-    char overflow = b2.b[1]>a2128.b[1];
+    u64 overflow;
+    a2128.a = addUU(&overflow, a2128.a, b2.a);
     int nz = (~0u + overflow) & __builtin_clzll(a2128.b[1]);
     unsigned i = (!overflow + nz)&1;
     int s = 1 - overflow + nz;
